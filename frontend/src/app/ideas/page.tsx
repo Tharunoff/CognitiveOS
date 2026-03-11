@@ -99,7 +99,7 @@ export default function IdeaVaultPage() {
                 </motion.div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <AnimatePresence mode="popLayout">
+                    <AnimatePresence>
                         {filteredIdeas.map((idea, i) => (
                             <motion.div
                                 key={idea.id}
@@ -108,8 +108,6 @@ export default function IdeaVaultPage() {
                                 initial="hidden"
                                 animate="visible"
                                 exit="exit"
-                                layout
-                                layoutId={idea.id}
                                 className="relative group"
                             >
                                 <AnimatePresence mode="wait">

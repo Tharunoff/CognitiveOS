@@ -169,7 +169,7 @@ export default function SchedulePage() {
                     >
                         <h3 className="font-semibold text-center border-b pb-2">{d}</h3>
                         <div className="flex flex-col gap-3">
-                            <AnimatePresence mode="popLayout">
+                            <AnimatePresence>
                                 {blocks.filter(b => b.day === d).map((block, i) => (
                                     <motion.div
                                         key={block.id}
@@ -178,7 +178,6 @@ export default function SchedulePage() {
                                         initial="hidden"
                                         animate="visible"
                                         exit="exit"
-                                        layout
                                         className="group relative"
                                     >
                                         <motion.div whileHover={{ y: -3, scale: 1.02 }} transition={{ ...spring, stiffness: 400 }}>
