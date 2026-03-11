@@ -1,0 +1,33 @@
+src/app/dump/page.tsx(6,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/dump/page.tsx(7,75): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/app/dump/page.tsx(8,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+src/app/focus/[id]/page.tsx(5,75): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/app/focus/[id]/page.tsx(6,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/focus/[id]/page.tsx(8,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+src/app/ideas/[id]/page.tsx(6,58): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/app/ideas/[id]/page.tsx(7,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/ideas/[id]/page.tsx(9,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/ideas/[id]/page.tsx(67,51): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/ideas/page.tsx(5,75): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/app/ideas/page.tsx(6,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/ideas/page.tsx(44,36): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/learn/page.tsx(4,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/learn/page.tsx(5,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/learn/page.tsx(6,58): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/app/learn/page.tsx(94,31): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/login/page.tsx(6,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/login/page.tsx(7,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/login/page.tsx(8,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+src/app/login/page.tsx(9,75): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/app/login/page.tsx(60,43): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/login/page.tsx(71,43): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/page.tsx(5,58): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/app/page.tsx(6,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/schedule/page.tsx(4,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/schedule/page.tsx(5,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/app/schedule/page.tsx(6,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+src/app/schedule/page.tsx(7,58): error TS2307: Cannot find module '@/components/ui/card' or its corresponding type declarations.
+src/app/schedule/page.tsx(89,73): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/schedule/page.tsx(99,89): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/schedule/page.tsx(109,94): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/schedule/page.tsx(113,70): error TS7006: Parameter 'e' implicitly has an 'any' type.
