@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  timeBlocks   TimeBlock[]
+}
+
+model Idea {
+  id        String        @id @default(uuid())
+  title     String
+  problem   String
+  type      String        @default("Personal")
+  createdAt DateTime      @default(now())
+  sections  IdeaSection[]
+}
+
+model IdeaSection {
+  id          String @id @default(uuid())
+  ideaId      String
+  idea        Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  sectionName String
+  content     String
+  orderIndex  Int
+}
+
+model TimeBlock {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  day          String     // "Monday", etc.
+  startTime    String     // e.g. "09:00"
+  endTime      String     // e.g. "10:30"
+  reminderTime Int        // minutes before start time
+  status       String     @default("SCHEDULED") // "SCHEDULED", "COMPLETED"
+  logs         BlockLog[]
+}
+
+model BlockLog {
+  id          String    @id @default(uuid())
+  blockId     String
+  block       TimeBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  output      String
+  completedAt DateTime  @default(now())
+}
+
+model LearningTopic {
+  id              String @id @default(uuid())
+  topic           String
+  kidExplanation  String
+  examAnswer      String
+  bulletNotes     String
+  stepExplanation String
+}
