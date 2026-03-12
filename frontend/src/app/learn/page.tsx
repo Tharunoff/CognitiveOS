@@ -99,7 +99,7 @@ function TopicCard({ item, index }: { item: any, index: number }) {
                                 <motion.button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors relative ${activeTab === tab.id
+                                    className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap flex-shrink-0 transition-colors relative ${activeTab === tab.id
                                         ? 'bg-primary text-primary-foreground'
                                         : 'text-muted-foreground hover:bg-secondary'
                                         }`}

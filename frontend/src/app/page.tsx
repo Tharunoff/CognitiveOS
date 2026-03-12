@@ -91,11 +91,12 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 overflow-hidden min-w-0">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, ...gentleSpring }}
+          className="overflow-hidden min-w-0"
         >
           <Card className="h-full">
             <CardHeader className="px-4 sm:px-6">
@@ -137,6 +138,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, ...gentleSpring }}
+          className="overflow-hidden min-w-0"
         >
           <Card className="h-full">
             <CardHeader className="px-4 sm:px-6">
