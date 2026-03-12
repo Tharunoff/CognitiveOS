@@ -4,11 +4,66 @@ import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/cjs/styles/prism';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
 const gentleSpring = { type: 'spring' as const, stiffness: 200, damping: 25 };
+
+const CodeBlock = ({ className, children, ...props }: any) => {
+    const match = /language-(\w+)/.exec(className || '');
+    const [copied, setCopied] = useState(false);
+    const codeString = String(children).replace(/\n$/, '');
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(codeString);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    if (match) {
+        return (
+            <div className="relative group my-4 rounded-md overflow-hidden border border-border">
+                <div className="flex items-center justify-between px-4 py-2 bg-secondary/50 text-xs">
+                    <span className="font-mono text-muted-foreground">{match[1]}</span>
+                    <button
+                        onClick={handleCopy}
+                        className="p-1.5 hover:bg-secondary rounded-md transition-colors flex items-center gap-1.5"
+                    >
+                        {copied ? (
+                            <>
+                                <Check className="w-3.5 h-3.5 text-green-500" />
+                                <span className="text-green-500">Copied!</span>
+                            </>
+                        ) : (
+                            <>
+                                <Copy className="w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground" />
+                                <span className="text-muted-foreground group-hover:text-foreground">Copy Code</span>
+                            </>
+                        )}
+                    </button>
+                </div>
+                <SyntaxHighlighter
+                    style={vscDarkPlus as any}
+                    language={match[1]}
+                    PreTag="div"
+                    customStyle={{ margin: 0, borderRadius: 0, background: '#1e1e1e' }}
+                    {...props}
+                >
+                    {codeString}
+                </SyntaxHighlighter>
+            </div>
+        );
+    }
+    return (
+        <code className="bg-muted px-1.5 py-0.5 rounded-md font-mono text-sm break-all" {...props}>
+            {children}
+        </code>
+    );
+};
 
 function TopicCard({ item, index }: { item: any, index: number }) {
     const [activeTab, setActiveTab] = useState<'kid' | 'exam' | 'bullet' | 'step'>('kid');
@@ -63,13 +118,30 @@ function TopicCard({ item, index }: { item: any, index: number }) {
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeTab}
-                                className="p-4 bg-background/50 rounded-md whitespace-pre-wrap leading-relaxed border font-mono text-sm shadow-inner"
+                                className="p-4 bg-background/50 rounded-md border shadow-inner text-base leading-relaxed"
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
                             >
-                                {contentMap[activeTab]}
+                                <div className="space-y-4 max-w-none break-words">
+                                    <ReactMarkdown
+                                        components={{
+                                            code: CodeBlock,
+                                            p: ({node, ...props}) => <p className="mb-4 last:mb-0" {...props} />,
+                                            ul: ({node, ...props}) => <ul className="list-disc pl-6 mb-4 space-y-2 marker:text-muted-foreground" {...props} />,
+                                            ol: ({node, ...props}) => <ol className="list-decimal pl-6 mb-4 space-y-2 marker:text-muted-foreground" {...props} />,
+                                            li: ({node, ...props}) => <li {...props} />,
+                                            h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 mt-6" {...props} />,
+                                            h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3 mt-5" {...props} />,
+                                            h3: ({node, ...props}) => <h3 className="text-lg font-bold mb-2 mt-4" {...props} />,
+                                            strong: ({node, ...props}) => <strong className="font-semibold text-foreground/90" {...props} />,
+                                            blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4" {...props} />
+                                        }}
+                                    >
+                                        {contentMap[activeTab] || ''}
+                                    </ReactMarkdown>
+                                </div>
                             </motion.div>
                         </AnimatePresence>
                     </CardContent>

@@ -56,7 +56,7 @@ Idea text:
 `;
 
 const LEARNING_PROMPT = `
-Explain the topic in four formats.
+Explain the topic in four formats. If the topic involves programming or is technical, MUST use Markdown code blocks with the correct language identifier for code snippets.
 Return JSON with strictly this schema:
 {
   "kid_explanation": "string",
@@ -86,7 +86,11 @@ export async function structureIdea(text: string, type: 'Work' | 'Personal' = 'W
     });
 
     if (response.text) {
-      return JSON.parse(response.text);
+      let cleanText = response.text.trim();
+      if (cleanText.startsWith('```json')) cleanText = cleanText.replace(/^```json\s*/i, '');
+      else if (cleanText.startsWith('```')) cleanText = cleanText.replace(/^```\s*/, '');
+      if (cleanText.endsWith('```')) cleanText = cleanText.replace(/\s*```$/, '');
+      return JSON.parse(cleanText);
     }
     return null;
   } catch (error) {
@@ -107,7 +111,11 @@ export async function compressLearning(topic: string) {
     });
 
     if (response.text) {
-      return JSON.parse(response.text);
+      let cleanText = response.text.trim();
+      if (cleanText.startsWith('```json')) cleanText = cleanText.replace(/^```json\s*/i, '');
+      else if (cleanText.startsWith('```')) cleanText = cleanText.replace(/^```\s*/, '');
+      if (cleanText.endsWith('```')) cleanText = cleanText.replace(/\s*```$/, '');
+      return JSON.parse(cleanText);
     }
     return null;
   } catch (error) {
@@ -148,7 +156,11 @@ Return ONLY valid JSON.
     });
 
     if (response.text) {
-      return JSON.parse(response.text);
+      let cleanText = response.text.trim();
+      if (cleanText.startsWith('```json')) cleanText = cleanText.replace(/^```json\s*/i, '');
+      else if (cleanText.startsWith('```')) cleanText = cleanText.replace(/^```\s*/, '');
+      if (cleanText.endsWith('```')) cleanText = cleanText.replace(/\s*```$/, '');
+      return JSON.parse(cleanText);
     }
     return null;
   } catch (error) {

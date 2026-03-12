@@ -55,13 +55,13 @@ export default function DashboardPage() {
 
   return (
     <motion.div
-      className="space-y-6"
+      className="space-y-6 transform-gpu will-change-transform"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
     >
       <motion.h1
-        className="text-2xl sm:text-3xl font-bold"
+        className="text-2xl sm:text-3xl font-bold transform-gpu will-change-transform"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ ...gentleSpring, delay: 0.1 }}
@@ -109,13 +109,13 @@ export default function DashboardPage() {
                   {todaysBlocks.map((block, i) => (
                     <motion.li
                       key={block.id}
-                      className="flex justify-between items-center p-3 border rounded-md"
+                      className="flex justify-between items-center p-3 border rounded-md gap-3 overflow-hidden"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.4 + i * 0.05, ...spring }}
                     >
-                      <span className="font-medium text-sm">{block.startTime} - {block.title}</span>
-                      <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${block.status === 'COMPLETED' ? 'bg-primary/20 text-primary' : 'bg-secondary'}`}>
+                      <span className="font-medium text-sm truncate min-w-0 flex-1">{block.startTime} - {block.title}</span>
+                      <span className={`text-xs px-2 py-1 flex-shrink-0 rounded-full whitespace-nowrap ${block.status === 'COMPLETED' ? 'bg-primary/20 text-primary' : 'bg-secondary'}`}>
                         {block.status}
                       </span>
                     </motion.li>
@@ -150,12 +150,12 @@ export default function DashboardPage() {
                   {ideas.map((idea, i) => (
                     <motion.li
                       key={idea.id}
-                      className="p-3 border rounded-md space-y-1"
+                      className="p-3 border rounded-md space-y-1 overflow-hidden"
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.4 + i * 0.05, ...spring }}
                     >
-                      <Link href={`/ideas/${idea.id}`} className="hover:underline font-semibold block text-sm">
+                      <Link href={`/ideas/${idea.id}`} className="hover:underline font-semibold block text-sm truncate">
                         {idea.title}
                       </Link>
                       <p className="text-xs sm:text-sm text-muted-foreground truncate">{idea.problem}</p>

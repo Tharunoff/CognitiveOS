@@ -4,9 +4,7 @@ import { authMiddleware } from '../middlewares/auth';
 import { compressLearning } from '../services/ai';
 
 const router = express.Router();
-const prisma = new PrismaClient({
-    datasourceUrl: "file:./dev.db"
-});
+const prisma = new PrismaClient();
 
 router.post('/compress', authMiddleware, async (req, res) => {
     const { topic } = req.body;

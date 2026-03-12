@@ -7,18 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BrainCircuit } from 'lucide-react';
+import { BrainCircuit, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function LoginPage() {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const { login } = useAppStore();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
 
         try {
             const endpoint = isLogin ? '/auth/login' : '/auth/register';
@@ -30,6 +33,8 @@ export default function LoginPage() {
             login(response.user, response.token);
         } catch (err: any) {
             setError(err.message || 'Authentication failed');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -69,13 +74,28 @@ export default function LoginPage() {
                                 type="password"
                                 value={password}
                                 onChange={(e: any) => setPassword(e.target.value)}
-                                required border-none
+                                required className="border-none"
                             />
                         </div>
                         {error && <p className="text-sm text-destructive">{error}</p>}
 
-                        <Button type="submit" className="w-full">
-                            {isLogin ? 'Sign In' : 'Sign Up'}
+                        <Button type="submit" className="w-full relative overflow-hidden h-10" disabled={loading}>
+                            <motion.div 
+                                initial={false} 
+                                animate={{ y: loading ? "-150%" : "0%", opacity: loading ? 0 : 1 }} 
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                className="absolute inset-0 flex items-center justify-center font-semibold"
+                            >
+                                {isLogin ? 'Sign In' : 'Sign Up'}
+                            </motion.div>
+                            <motion.div 
+                                initial={false} 
+                                animate={{ y: loading ? "0%" : "150%", opacity: loading ? 1 : 0 }} 
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                className="absolute inset-0 flex items-center justify-center"
+                            >
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            </motion.div>
                         </Button>
 
                         <div className="text-center text-sm pt-4">
