@@ -1,27 +1,15 @@
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
+import { getGeminiKey } from '../utils/geminiKeyRotator';
 dotenv.config();
 
-const keys = [
-  process.env.GEMINI_API_KEY,
-  process.env.GEMINI_API_KEY_2,
-  process.env.GEMINI_API_KEY_3
-].filter(Boolean) as string[];
-
-if (keys.length === 0) {
-  console.error("No GEMINI_API_KEY found in environment variables.");
-}
-
-let keyIndex = 0;
-function getNextAIClient() {
-  const key = keys[keyIndex];
-  if (!key) throw new Error("No GEMINI_API_KEY available.");
-  keyIndex = (keyIndex + 1) % keys.length;
-  return new GoogleGenAI({ apiKey: key as string });
+async function getNextAIClient() {
+  const key = await getGeminiKey();
+  return new GoogleGenAI({ apiKey: key });
 }
 
 async function callAI(prompt: string): Promise<any> {
-  const ai = getNextAIClient();
+  const ai = await getNextAIClient();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: prompt,

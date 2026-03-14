@@ -4,224 +4,419 @@ import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Plus, Clock, CheckCircle2, Trash2, Pencil } from 'lucide-react';
+import { Loader2, Plus, Clock, CheckCircle2, Trash2, Pencil, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DURATIONS = [30, 60, 90, 120];
-
-const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
-const gentleSpring = { type: 'spring' as const, stiffness: 200, damping: 25 };
-
-const blockVariants = {
-    hidden: { opacity: 0, y: 16, scale: 0.95 },
-    visible: (i: number) => ({
-        opacity: 1, y: 0, scale: 1,
-        transition: { delay: i * 0.04, ...gentleSpring }
-    }),
-    exit: { opacity: 0, scale: 0.9, x: -20, transition: { duration: 0.2, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] } }
-};
-
-const formVariants = {
-    hidden: { opacity: 0, height: 0, y: -20 },
-    visible: { opacity: 1, height: 'auto', y: 0, transition: { ...gentleSpring, opacity: { duration: 0.3 } } },
-    exit: { opacity: 0, height: 0, y: -20, transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] } }
-};
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DURATIONS = [30, 45, 60, 90, 120, 180, 240];
 
 export default function SchedulePage() {
+    const todayDate = new Date();
+    const [currentYear, setCurrentYear] = useState(todayDate.getFullYear());
+    const [currentMonth, setCurrentMonth] = useState(todayDate.getMonth());
     const [blocks, setBlocks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
+    const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
+    
+    // Form state
     const [isAdding, setIsAdding] = useState(false);
     const [editingBlock, setEditingBlock] = useState<any | null>(null);
-
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [day, setDay] = useState('Monday');
+    const [type, setType] = useState('Work');
+    const [formDate, setFormDate] = useState(''); // YYYY-MM-DD
     const [startTime, setStartTime] = useState('09:00');
     const [duration, setDuration] = useState(60);
     const [reminderTime, setReminderTime] = useState(15);
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => { fetchBlocks(); }, []);
+    useEffect(() => { fetchMonthBlocks(); }, [currentYear, currentMonth]);
 
-    const fetchBlocks = async () => {
-        try { const data = await apiFetch('/blocks'); setBlocks(data); }
-        catch (err) { console.error(err); }
-        finally { setLoading(false); }
+    const fetchMonthBlocks = async () => {
+        setLoading(true);
+        // fetch window: 1 month before to 1 month after to cover overflow days
+        const from = new Date(currentYear, currentMonth - 1, 1).toISOString();
+        const to = new Date(currentYear, currentMonth + 2, 0).toISOString();
+        try {
+            const data = await apiFetch(`/blocks?from=${from}&to=${to}`);
+            setBlocks(data);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const resetForm = () => { setTitle(''); setDescription(''); setDay('Monday'); setStartTime('09:00'); setDuration(60); setReminderTime(15); };
+    const resetForm = (dateDefault?: Date) => {
+        setTitle('');
+        setDescription('');
+        setType('Work');
+        setFormDate(dateDefault ? dateDefault.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+        setStartTime('09:00');
+        setDuration(60);
+        setReminderTime(15);
+    };
 
     const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault(); setSaving(true);
+        e.preventDefault();
+        setSaving(true);
         const [hrs, mins] = startTime.split(':').map(Number);
         const endMins = mins + duration;
         const endHrs = hrs + Math.floor(endMins / 60);
         const endTime = `${String(endHrs % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
+        const finalDesc = description ? `[${type}] ${description}` : `[${type}]`;
+        
         try {
-            await apiFetch('/blocks', { method: 'POST', body: JSON.stringify({ title, description, day, startTime, endTime, reminderTime }) });
-            setIsAdding(false); resetForm(); fetchBlocks();
-        } catch (err) { console.error(err); alert('Failed to schedule block.'); }
-        finally { setSaving(false); }
+            await apiFetch('/blocks', {
+                method: 'POST',
+                body: JSON.stringify({
+                    title,
+                    description: finalDesc,
+                    scheduledDate: formDate,
+                    startTime,
+                    endTime,
+                    reminderTime
+                })
+            });
+            setIsAdding(false);
+            resetForm();
+            fetchMonthBlocks();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to schedule block.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingBlock) return;
+        setSaving(true);
+        const [hrs, mins] = startTime.split(':').map(Number);
+        const endMins = mins + duration;
+        const endHrs = hrs + Math.floor(endMins / 60);
+        const endTime = `${String(endHrs % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
+        const finalDesc = description ? (description.startsWith('[') ? description : `[${type}] ${description}`) : `[${type}]`;
+
+        try {
+            await apiFetch(`/blocks/${editingBlock.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    title,
+                    description: finalDesc,
+                    scheduledDate: formDate,
+                    startTime,
+                    endTime,
+                    reminderTime
+                })
+            });
+            setEditingBlock(null);
+            resetForm();
+            fetchMonthBlocks();
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update block.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
         e.preventDefault(); e.stopPropagation();
         if (!confirm('Delete this block?')) return;
-        try { await apiFetch(`/blocks/${id}`, { method: 'DELETE' }); setBlocks(blocks.filter(b => b.id !== id)); }
-        catch (err) { console.error(err); alert('Failed to delete block.'); }
+        try {
+            await apiFetch(`/blocks/${id}`, { method: 'DELETE' });
+            setBlocks(blocks.filter(b => b.id !== id));
+        } catch (err) {
+            console.error(err);
+            alert('Failed to delete block.');
+        }
     };
 
     const startEditing = (block: any, e: React.MouseEvent) => {
         e.preventDefault(); e.stopPropagation();
-        setEditingBlock(block); setTitle(block.title); setDescription(block.description || '');
-        setDay(block.day); setStartTime(block.startTime); setReminderTime(block.reminderTime);
+        setEditingBlock(block);
+        setTitle(block.title);
+        
+        let desc = block.description || '';
+        let detectedType = 'Work';
+        if (desc.startsWith('[Work]')) { detectedType = 'Work'; desc = desc.replace('[Work]', '').trim(); }
+        else if (desc.startsWith('[Personal]')) { detectedType = 'Personal'; desc = desc.replace('[Personal]', '').trim(); }
+        
+        setType(detectedType);
+        setDescription(desc);
+        setFormDate(new Date(block.scheduledDate).toISOString().split('T')[0]);
+        setStartTime(block.startTime);
+        setReminderTime(block.reminderTime);
+        
         const [sh, sm] = block.startTime.split(':').map(Number);
         const [eh, em] = block.endTime.split(':').map(Number);
-        setDuration((eh * 60 + em) - (sh * 60 + sm)); setIsAdding(false);
+        setDuration((eh * 60 + em) - (sh * 60 + sm));
+        setIsAdding(false);
     };
 
-    const handleSaveEdit = async (e: React.FormEvent) => {
-        e.preventDefault(); if (!editingBlock) return; setSaving(true);
-        const [hrs, mins] = startTime.split(':').map(Number);
-        const endMins = mins + duration;
-        const endHrs = hrs + Math.floor(endMins / 60);
-        const endTime = `${String(endHrs % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
-        try {
-            await apiFetch(`/blocks/${editingBlock.id}`, { method: 'PUT', body: JSON.stringify({ title, description, day, startTime, endTime, reminderTime }) });
-            setEditingBlock(null); resetForm(); fetchBlocks();
-        } catch (err) { console.error(err); alert('Failed to update block.'); }
-        finally { setSaving(false); }
+    const goPrevMonth = () => {
+        if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(currentYear - 1); }
+        else { setCurrentMonth(currentMonth - 1); }
+        setSelectedDate(null);
     };
 
-    const cancelEditing = () => { setEditingBlock(null); resetForm(); };
+    const goNextMonth = () => {
+        if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(currentYear + 1); }
+        else { setCurrentMonth(currentMonth + 1); }
+        setSelectedDate(null);
+    };
 
-    if (loading) return (
-        <div className="p-12 flex justify-center">
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full" />
-        </div>
-    );
+    const jumpToToday = () => {
+        const t = new Date();
+        setCurrentYear(t.getFullYear());
+        setCurrentMonth(t.getMonth());
+        setSelectedDate(t);
+    };
+
+    const getCalendarDays = () => {
+        const d = new Date(currentYear, currentMonth, 1);
+        const days = [];
+        const firstDayIndex = d.getDay();
+        const startOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1;
+        
+        const prevLastDay = new Date(currentYear, currentMonth, 0).getDate();
+        for (let i = startOffset - 1; i >= 0; i--) {
+            days.push({ date: new Date(currentYear, currentMonth - 1, prevLastDay - i), isCurrentMonth: false });
+        }
+        
+        const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+        for (let i = 1; i <= lastDay; i++) {
+            days.push({ date: new Date(currentYear, currentMonth, i), isCurrentMonth: true });
+        }
+        
+        const remainingCount = 42 - days.length;
+        for (let i = 1; i <= remainingCount; i++) {
+            days.push({ date: new Date(currentYear, currentMonth + 1, i), isCurrentMonth: false });
+        }
+        return days;
+    };
+
+    const calendarDays = getCalendarDays();
+
+    const blocksForDate = (date: Date) => {
+        return blocks.filter(b => {
+             const bd = new Date(b.scheduledDate);
+             return bd.getDate() === date.getDate() && bd.getMonth() === date.getMonth() && bd.getFullYear() === date.getFullYear();
+        });
+    };
+
+    const selectedBlocks = selectedDate ? blocksForDate(selectedDate) : [];
 
     return (
-        <motion.div
-            className="max-w-6xl mx-auto space-y-6 pt-4"
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-        >
-            <div className="flex justify-between items-center">
-                <motion.h1 className="text-3xl font-bold tracking-tight text-white" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ ...gentleSpring, delay: 0.1 }}>
-                    Weekly Execution
-                </motion.h1>
-                <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.94 }} transition={spring}>
-                    <Button onClick={() => { setIsAdding(!isAdding); setEditingBlock(null); resetForm(); }} className="bg-white text-black hover:bg-white/90">
-                        <motion.div animate={{ rotate: isAdding ? 45 : 0 }} transition={spring}>
-                            <Plus className="w-4 h-4 mr-2" />
-                        </motion.div>
-                        New Block
-                    </Button>
-                </motion.div>
+        <div className="max-w-6xl mx-auto space-y-6 pt-4 pb-12 flex flex-col md:flex-row gap-6 relative">
+            {/* Main Calendar View */}
+            <div className={`flex-1 transition-all duration-300 ${selectedDate ? 'md:w-2/3' : 'w-full'}`}>
+                {/* Header Navigation */}
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-4 relative">
+                        <Button variant="ghost" size="icon" onClick={goPrevMonth} className="text-white/60 hover:text-white"><ChevronLeft className="w-5 h-5"/></Button>
+                        <div 
+                            className="text-xl md:text-2xl font-bold tracking-tight text-white cursor-pointer hover:text-white/80 transition-colors"
+                            onClick={() => setIsYearPickerOpen(!isYearPickerOpen)}
+                        >
+                            {new Date(currentYear, currentMonth).toLocaleString('default', { month: 'long' })} {currentYear}
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={goNextMonth} className="text-white/60 hover:text-white"><ChevronRight className="w-5 h-5"/></Button>
+                        
+                        {/* Year Picker Dropdown */}
+                        <AnimatePresence>
+                            {isYearPickerOpen && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                                    className="absolute top-12 left-1/2 -translate-x-1/2 bg-[#121212] border border-white/10 rounded-lg p-2 shadow-xl z-50 grid grid-cols-3 gap-2 w-64"
+                                >
+                                    {Array.from({length: 10}).map((_, i) => {
+                                        const y = todayDate.getFullYear() + i;
+                                        return (
+                                            <Button 
+                                                key={y} variant="ghost" size="sm" 
+                                                className={`text-white/60 hover:text-white ${currentYear === y ? 'bg-white/10 text-white' : ''}`}
+                                                onClick={() => { setCurrentYear(y); setIsYearPickerOpen(false); }}
+                                            >
+                                                {y}
+                                            </Button>
+                                        );
+                                    })}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                        <Button onClick={jumpToToday} variant="outline" className="border-white/10 bg-white/[0.02] text-white/60 hover:text-white hidden md:flex">Today</Button>
+                        <Button onClick={() => { 
+                            setIsAdding(true); 
+                            setEditingBlock(null); 
+                            setSelectedDate(selectedDate || new Date());
+                            resetForm(selectedDate || new Date()); 
+                        }} className="bg-white text-black hover:bg-white/90">
+                            <Plus className="w-4 h-4 mr-2" /> Schedule
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Grid */}
+                <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-xl overflow-hidden">
+                    {/* Weekday headers */}
+                    {WEEKDAYS.map(d => (
+                        <div key={d} className="bg-[#0a0a0a] text-center py-2 text-xs font-medium text-white/40 uppercase tracking-widest">{d}</div>
+                    ))}
+                    
+                    {/* Calendar cells */}
+                    {calendarDays.map((item, i) => {
+                        const cellBlocks = blocksForDate(item.date);
+                        const isToday = item.date.toDateString() === todayDate.toDateString();
+                        const isSelected = selectedDate && item.date.toDateString() === selectedDate.toDateString();
+                        
+                        return (
+                            <div 
+                                key={i}
+                                onClick={() => { setSelectedDate(item.date); setIsAdding(false); setEditingBlock(null); }}
+                                className={`
+                                    min-h-[80px] md:min-h-[100px] bg-[#0c0c0c] p-1 md:p-2 cursor-pointer transition-colors hover:bg-white/[0.04] relative
+                                    ${!item.isCurrentMonth ? 'opacity-40 bg-[#0a0a0a]' : ''}
+                                    ${isSelected ? 'bg-white/[0.08]' : ''}
+                                `}
+                            >
+                                <div className={`text-xs md:text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-white text-black' : 'text-white/60'}`}>
+                                    {item.date.getDate()}
+                                </div>
+                                <div className="mt-1 space-y-1">
+                                    {cellBlocks.slice(0, 3).map(b => (
+                                        <div key={b.id} className="text-[10px] md:text-xs px-1.5 py-0.5 rounded bg-white/10 text-white/80 truncate border border-white/5">
+                                            {b.startTime} {b.title}
+                                        </div>
+                                    ))}
+                                    {cellBlocks.length > 3 && (
+                                        <div className="text-[10px] text-white/40 px-1">+ {cellBlocks.length - 3} more</div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
+            {/* Side Panel (Selected Date / Form) */}
             <AnimatePresence>
-                {(isAdding || editingBlock) && (
-                    <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
-                        <Card className="border-white/15 bg-white/[0.03]">
-                            <CardHeader><CardTitle className="text-white">{editingBlock ? '✏️ Edit Block' : '📅 Schedule Focus Block'}</CardTitle></CardHeader>
-                            <CardContent>
-                                <form onSubmit={editingBlock ? handleSaveEdit : handleCreate} className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2"><Label className="text-white/60">Title</Label><Input required value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="e.g. Deep Work on API" className="bg-white/[0.02] border-white/10 text-white placeholder-white/20" /></div>
-                                    <div className="space-y-2">
-                                        <Label className="text-white/60">Day</Label>
-                                        <select className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.02] text-white px-3 py-2 text-sm" value={day} onChange={(e: any) => setDay(e.target.value)}>
-                                            {DAYS.map(d => <option key={d} value={d} className="bg-[#0a0a0a]">{d}</option>)}
+                {(selectedDate || isAdding || editingBlock) && (
+                    <motion.div 
+                        initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
+                        className="w-full md:w-1/3 flex flex-col gap-4 border-l border-white/10 pl-0 md:pl-6 sticky top-24"
+                    >
+                        {/* Selected Date Header */}
+                        {selectedDate && !isAdding && !editingBlock && (
+                            <div className="bg-[#0c0c0c] rounded-xl border border-white/10 p-5">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-lg font-bold text-white">
+                                        {selectedDate.toLocaleDateString('default', { weekday: 'long', month: 'short', day: 'numeric' })}
+                                    </h2>
+                                    <Button variant="ghost" size="icon" onClick={() => setSelectedDate(null)} className="h-6 w-6 text-white/40 hover:text-white"><X className="w-4 h-4"/></Button>
+                                </div>
+
+                                {selectedBlocks.length === 0 ? (
+                                    <div className="text-center py-8 text-white/30 text-sm">No blocks scheduled for this day.</div>
+                                ) : (
+                                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                                        {selectedBlocks.map(block => (
+                                            <div key={block.id} className="group p-3 rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-colors relative">
+                                                <div className="flex justify-between items-start mb-1.5">
+                                                    <span className="text-xs font-medium text-white/40 flex items-center">
+                                                        <Clock className="w-3 h-3 mr-1" /> {block.startTime} — {block.endTime}
+                                                    </span>
+                                                    {block.status === 'COMPLETED' ? (
+                                                        <span className="bg-white/10 text-white/50 text-[10px] px-1.5 py-0.5 rounded-full uppercase tracking-wider">Done</span>
+                                                    ) : (
+                                                        <span className="bg-blue-500/10 text-blue-400 text-[10px] px-1.5 py-0.5 rounded-full uppercase tracking-wider">Pending</span>
+                                                    )}
+                                                </div>
+                                                <p className={`font-medium text-sm leading-tight text-white mb-1 ${block.status === 'COMPLETED' ? 'line-through opacity-50' : ''}`}>{block.title}</p>
+                                                <p className="text-xs text-white/40 line-clamp-2">{block.description}</p>
+                                                
+                                                <div className="mt-3 flex gap-2">
+                                                    <Link href={`/focus/${block.id}`} className="flex-1">
+                                                        <Button size="sm" className="w-full text-xs h-7 bg-white/10 text-white hover:bg-white/20">Focus Mode</Button>
+                                                    </Link>
+                                                    <Button size="icon" variant="ghost" className="h-7 w-7 text-white/40 hover:text-white" onClick={(e) => startEditing(block, e)}><Pencil className="w-3.5 h-3.5"/></Button>
+                                                    <Button size="icon" variant="ghost" className="h-7 w-7 text-white/40 hover:text-red-400" onClick={(e) => handleDelete(block.id, e)}><Trash2 className="w-3.5 h-3.5"/></Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                
+                                <Button className="w-full mt-4 bg-white/5 text-white hover:bg-white/10 border border-white/10 text-sm" onClick={() => { setIsAdding(true); resetForm(selectedDate); }}>
+                                    <Plus className="w-4 h-4 mr-2" /> Add Block
+                                </Button>
+                            </div>
+                        )}
+
+                        {/* Schedule Form */}
+                        {(isAdding || editingBlock) && (
+                            <form onSubmit={editingBlock ? handleSaveEdit : handleCreate} className="bg-[#0c0c0c] rounded-xl border border-white/10 p-5 space-y-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="font-bold text-white">{editingBlock ? 'Edit Block' : 'Schedule Focus Block'}</h3>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => { setIsAdding(false); setEditingBlock(null); }} className="h-6 w-6 text-white/40 hover:text-white"><X className="w-4 h-4"/></Button>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-white/60 text-xs">Title</Label>
+                                    <Input required value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="e.g. Deep Work on API" className="bg-[#0a0a0a] border-white/10 text-white text-sm" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-white/60 text-xs">Date</Label>
+                                        <Input type="date" required value={formDate} onChange={(e: any) => setFormDate(e.target.value)} className="bg-[#0a0a0a] border-white/10 text-white text-sm [color-scheme:dark]" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-white/60 text-xs">Type</Label>
+                                        <select className="flex h-10 w-full rounded-md border border-white/10 bg-[#0a0a0a] text-white px-3 py-2 text-sm" value={type} onChange={(e: any) => setType(e.target.value)}>
+                                            <option value="Work">Work</option>
+                                            <option value="Personal">Personal</option>
                                         </select>
                                     </div>
-                                    <div className="space-y-2"><Label className="text-white/60">Start Time</Label><Input type="time" required value={startTime} onChange={(e: any) => setStartTime(e.target.value)} className="bg-white/[0.02] border-white/10 text-white" /></div>
-                                    <div className="space-y-2">
-                                        <Label className="text-white/60">Duration (Minutes)</Label>
-                                        <select className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.02] text-white px-3 py-2 text-sm" value={duration} onChange={(e: any) => setDuration(Number(e.target.value))}>
-                                            {DURATIONS.map(d => <option key={d} value={d} className="bg-[#0a0a0a]">{d} mins</option>)}
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-white/60 text-xs">Start Time</Label>
+                                        <Input type="time" required value={startTime} onChange={(e: any) => setStartTime(e.target.value)} className="bg-[#0a0a0a] border-white/10 text-white text-sm [color-scheme:dark]" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-white/60 text-xs">Duration</Label>
+                                        <select className="flex h-10 w-full rounded-md border border-white/10 bg-[#0a0a0a] text-white px-3 py-2 text-sm" value={duration} onChange={(e: any) => setDuration(Number(e.target.value))}>
+                                            {DURATIONS.map(d => <option key={d} value={d}>{d} min</option>)}
                                         </select>
                                     </div>
-                                    <div className="space-y-2"><Label className="text-white/60">Reminder (Minutes before)</Label><Input type="number" required value={reminderTime} onChange={(e: any) => setReminderTime(Number(e.target.value))} className="bg-white/[0.02] border-white/10 text-white" /></div>
-                                    <div className="space-y-2 md:col-span-2"><Label className="text-white/60">Goal / Description</Label><Input value={description} onChange={(e: any) => setDescription(e.target.value)} placeholder="What will you accomplish?" className="bg-white/[0.02] border-white/10 text-white placeholder-white/20" /></div>
-                                    <div className="md:col-span-2 flex justify-end gap-2 mt-2">
-                                        <motion.div whileTap={{ scale: 0.93 }} transition={spring}>
-                                            <Button variant="ghost" type="button" onClick={() => { setIsAdding(false); cancelEditing(); }} className="text-white/40 hover:text-white">Cancel</Button>
-                                        </motion.div>
-                                        <motion.div whileTap={{ scale: 0.93 }} transition={spring}>
-                                            <Button type="submit" disabled={saving} className="bg-white text-black hover:bg-white/90">{saving ? 'Saving...' : editingBlock ? 'Update Block' : 'Save Block'}</Button>
-                                        </motion.div>
-                                    </div>
-                                </form>
-                            </CardContent>
-                        </Card>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-white/60 text-xs">Reminder (Mins before)</Label>
+                                    <Input type="number" required value={reminderTime} onChange={(e: any) => setReminderTime(Number(e.target.value))} className="bg-[#0a0a0a] border-white/10 text-white text-sm" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-white/60 text-xs">Goal / Description</Label>
+                                    <textarea 
+                                        value={description} onChange={(e: any) => setDescription(e.target.value)} 
+                                        placeholder="What will you accomplish?" 
+                                        className="flex min-h-[60px] w-full rounded-md border border-white/10 bg-[#0a0a0a] text-white px-3 py-2 text-sm placeholder:text-white/20 custom-scrollbar" 
+                                    />
+                                </div>
+                                <Button type="submit" disabled={saving} className="w-full bg-white text-black hover:bg-white/90">
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingBlock ? 'Save Changes' : 'Schedule Block')}
+                                </Button>
+                            </form>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                {DAYS.map((d, dayIndex) => (
-                    <motion.div
-                        key={d}
-                        className="flex flex-col space-y-3"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: dayIndex * 0.05, ...gentleSpring }}
-                    >
-                        <h3 className="font-semibold text-center border-b border-white/10 pb-2 text-white/60 text-sm">{d}</h3>
-                        <div className="flex flex-col gap-3">
-                            <AnimatePresence>
-                                {blocks.filter(b => b.day === d).map((block, i) => (
-                                    <motion.div
-                                        key={block.id}
-                                        custom={i}
-                                        variants={blockVariants}
-                                        initial="hidden"
-                                        animate="visible"
-                                        exit="exit"
-                                        className="group relative"
-                                    >
-                                        <motion.div whileHover={{ y: -3, scale: 1.02 }} transition={{ ...spring, stiffness: 400 }}>
-                                            <Link href={`/focus/${block.id}`}>
-                                                <div className={`p-3 rounded-lg border cursor-pointer transition-colors
-                                                    ${block.status === 'COMPLETED'
-                                                        ? 'bg-white/[0.02] border-white/5 opacity-60'
-                                                        : 'bg-white/[0.02] border-white/10 hover:border-white/20'
-                                                    }`}>
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <span className="text-xs font-medium text-white/30 flex items-center">
-                                                            <Clock className="w-3 h-3 mr-1" /> {block.startTime}
-                                                        </span>
-                                                        {block.status === 'COMPLETED' && <CheckCircle2 className="w-4 h-4 text-white/40" />}
-                                                    </div>
-                                                    <p className="font-medium text-sm leading-tight mb-1 text-white">{block.title}</p>
-                                                    <p className="text-xs text-white/30 line-clamp-2">{block.description}</p>
-                                                </div>
-                                            </Link>
-                                        </motion.div>
-                                        <div className="absolute top-1 right-1 flex gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
-                                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} transition={spring}
-                                                className="p-1 rounded hover:bg-white/5 text-white/30 hover:text-white/60" onClick={(e) => startEditing(block, e)} title="Edit">
-                                                <Pencil className="w-3 h-3" />
-                                            </motion.button>
-                                            <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} transition={spring}
-                                                className="p-1 rounded hover:bg-white/5 text-white/30 hover:text-white/60" onClick={(e) => handleDelete(block.id, e)} title="Delete">
-                                                <Trash2 className="w-3 h-3" />
-                                            </motion.button>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                            {blocks.filter(b => b.day === d).length === 0 && (
-                                <div className="text-center p-4 border border-dashed border-white/5 rounded-lg text-white/15 text-xs">Empty</div>
-                            )}
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
-        </motion.div>
+        </div>
     );
 }

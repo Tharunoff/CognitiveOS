@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middlewares/auth';
 import { generateMorningBrief, detectPatterns, draftWeeklyMission } from '../services/ai';
+import { getCached, setCached } from '../utils/dailyCache';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -10,14 +11,28 @@ const prisma = new PrismaClient();
 router.get('/brief', authMiddleware, async (req, res) => {
     const userId = (req as any).user.id;
     try {
+        const cacheKey = `brief_${userId}`;
+        const cached = await getCached(cacheKey);
+        if (cached) return res.json(cached);
+
         const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
         const [todayBlocks, allIdeas, streak, completedBlocks] = await Promise.all([
-            prisma.timeBlock.findMany({ where: { userId, day: todayStr }, orderBy: { startTime: 'asc' } }),
+            prisma.timeBlock.findMany({ where: { userId }, orderBy: { startTime: 'asc' } }),
             prisma.idea.findMany({ where: { userId, archived: false }, orderBy: { updatedAt: 'desc' }, take: 30 }),
             prisma.userStreak.findUnique({ where: { userId } }),
             prisma.timeBlock.findMany({ where: { userId, status: 'COMPLETED' } })
         ]);
+
+        const todayBlocksFiltered = todayBlocks.filter(b => {
+             // Fallback filtering in case of migration
+             if (b.scheduledDate) {
+                 const blockDate = new Date(b.scheduledDate);
+                 const today = new Date();
+                 return blockDate.toDateString() === today.toDateString();
+             }
+             return false;
+        });
 
         const decayingIdeas = allIdeas.filter(i => i.decayScore < 0.4);
         const recentIdeas = allIdeas.filter(i => {
@@ -25,20 +40,19 @@ router.get('/brief', authMiddleware, async (req, res) => {
             return daysSince <= 7;
         });
 
-        // Calculate deep work hours from completed blocks this week
         const totalDeepWorkHours = completedBlocks.length;
 
         const brief = await generateMorningBrief({
-            todayBlocks,
+            todayBlocks: todayBlocksFiltered,
             decayingIdeas,
             recentIdeas,
             streak,
             totalDeepWorkHours
         });
 
-        res.json({
+        const result = {
             brief,
-            todayBlocks,
+            todayBlocks: todayBlocksFiltered,
             decayingIdeas: decayingIdeas.slice(0, 3),
             stats: {
                 streak: streak?.currentStreak || 0,
@@ -47,8 +61,12 @@ router.get('/brief', authMiddleware, async (req, res) => {
                 activeIdeas: allIdeas.filter(i => !i.archived).length,
                 decayingCount: decayingIdeas.length
             }
-        });
-    } catch (err) {
+        };
+
+        await setCached(cacheKey, result);
+        res.json(result);
+    } catch (err: any) {
+        if (err.message?.includes('limit reached')) return res.status(429).json({ error: err.message });
         console.error(err);
         res.status(500).json({ error: 'Failed to generate brief' });
     }
@@ -58,13 +76,19 @@ router.get('/brief', authMiddleware, async (req, res) => {
 router.get('/patterns', authMiddleware, async (req, res) => {
     const userId = (req as any).user.id;
     try {
+        const cacheKey = `patterns_${userId}`;
+        const cached = await getCached(cacheKey);
+        if (cached) return res.json(cached);
+
         const [ideas, blocks] = await Promise.all([
             prisma.idea.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 30 }),
             prisma.timeBlock.findMany({ where: { userId, status: 'COMPLETED' }, take: 20 })
         ]);
         const patterns = await detectPatterns(ideas, blocks);
+        await setCached(cacheKey, patterns);
         res.json(patterns);
-    } catch (err) {
+    } catch (err: any) {
+        if (err.message?.includes('limit reached')) return res.status(429).json({ error: err.message });
         console.error(err);
         res.status(500).json({ error: 'Pattern detection failed' });
     }
@@ -74,16 +98,39 @@ router.get('/patterns', authMiddleware, async (req, res) => {
 router.get('/mission', authMiddleware, async (req, res) => {
     const userId = (req as any).user.id;
     try {
+        const cacheKey = `mission_${userId}`;
+        const cached = await getCached(cacheKey);
+        if (cached) return res.json(cached);
+
         const [activeIdeas, blocks, decayingIdeas] = await Promise.all([
             prisma.idea.findMany({ where: { userId, archived: false }, orderBy: { updatedAt: 'desc' }, take: 20 }),
             prisma.timeBlock.findMany({ where: { userId } }),
             prisma.idea.findMany({ where: { userId, archived: false, decayScore: { lt: 0.4 } } })
         ]);
         const mission = await draftWeeklyMission(activeIdeas, blocks, decayingIdeas);
+        await setCached(cacheKey, mission);
         res.json(mission);
-    } catch (err) {
+    } catch (err: any) {
+        if (err.message?.includes('limit reached')) return res.status(429).json({ error: err.message });
         console.error(err);
         res.status(500).json({ error: 'Mission drafting failed' });
+    }
+});
+
+// ─── MANUAL REFRESH CACHE ─────────────────────────────────
+router.post('/refresh/:key', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    const { key } = req.params;
+    try {
+        const fullKey = `${key}_${userId}`;
+        const todayStr = new Date().toDateString();
+        await prisma.dailyCache.deleteMany({
+            where: { key: fullKey, date: todayStr }
+        });
+        res.json({ success: true, message: `Cache for ${key} cleared` });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to clear cache' });
     }
 });
 

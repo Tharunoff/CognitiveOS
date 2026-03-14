@@ -22,6 +22,7 @@ export default function DashboardPage() {
     const [briefCollapsed, setBriefCollapsed] = useState(false);
     const [weeklyReview, setWeeklyReview] = useState<any>(null);
     const [showReview, setShowReview] = useState(false);
+    const [limitError, setLimitError] = useState<string | null>(null);
 
     useEffect(() => {
         async function loadData() {
@@ -43,6 +44,15 @@ export default function DashboardPage() {
                 }
                 if (missionRes.status === 'fulfilled') {
                     setMission(missionRes.value);
+                }
+
+                // Check for AI limit errors
+                const results = [briefRes, patternsRes, missionRes];
+                for (const res of results) {
+                    if (res.status === 'rejected' && res.reason?.message?.includes('limit reached')) {
+                        setLimitError("Daily AI limit reached. Content will refresh tomorrow.");
+                        break;
+                    }
                 }
 
                 // Record streak
@@ -113,6 +123,17 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] }}
         >
+            {limitError && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="p-4 rounded-lg border border-orange-500/20 bg-orange-500/10 flex items-center gap-3 text-orange-400/90"
+                >
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                    <p className="text-sm font-medium">{limitError}</p>
+                </motion.div>
+            )}
+
             {/* ─── MORNING BRIEF ────────────────────────────── */}
             <AnimatePresence>
                 {!briefCollapsed && (

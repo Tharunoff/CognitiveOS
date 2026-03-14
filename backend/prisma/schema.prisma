@@ -83,7 +83,7 @@ model TimeBlock {
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   title        String
   description  String?
-  day          String
+  scheduledDate DateTime
   startTime    String
   endTime      String
   reminderTime Int
@@ -134,4 +134,19 @@ model WeeklyReview {
   decisions       String?
   completedAt     DateTime?
   createdAt       DateTime  @default(now())
+}
+
+model DailyCache {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  date      String
+  createdAt DateTime @default(now())
+}
+
+model ApiKeyUsage {
+  id      String @id @default(cuid())
+  keyName String @unique
+  count   Int    @default(0)
+  date    String
 }
