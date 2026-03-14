@@ -98,7 +98,11 @@ export default function SchedulePage() {
 
     const cancelEditing = () => { setEditingBlock(null); resetForm(); };
 
-    if (loading) return <div className="p-12 flex justify-center text-primary"><Loader2 className="animate-spin w-8 h-8" /></div>;
+    if (loading) return (
+        <div className="p-12 flex justify-center">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full" />
+        </div>
+    );
 
     return (
         <motion.div
@@ -107,11 +111,11 @@ export default function SchedulePage() {
             transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
         >
             <div className="flex justify-between items-center">
-                <motion.h1 className="text-3xl font-bold tracking-tight" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ ...gentleSpring, delay: 0.1 }}>
+                <motion.h1 className="text-3xl font-bold tracking-tight text-white" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ ...gentleSpring, delay: 0.1 }}>
                     Weekly Execution
                 </motion.h1>
                 <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.94 }} transition={spring}>
-                    <Button onClick={() => { setIsAdding(!isAdding); setEditingBlock(null); resetForm(); }}>
+                    <Button onClick={() => { setIsAdding(!isAdding); setEditingBlock(null); resetForm(); }} className="bg-white text-black hover:bg-white/90">
                         <motion.div animate={{ rotate: isAdding ? 45 : 0 }} transition={spring}>
                             <Plus className="w-4 h-4 mr-2" />
                         </motion.div>
@@ -123,32 +127,32 @@ export default function SchedulePage() {
             <AnimatePresence>
                 {(isAdding || editingBlock) && (
                     <motion.div variants={formVariants} initial="hidden" animate="visible" exit="exit">
-                        <Card className="border-primary/50 shadow-lg shadow-primary/5">
-                            <CardHeader><CardTitle>{editingBlock ? '✏️ Edit Block' : '📅 Schedule Focus Block'}</CardTitle></CardHeader>
+                        <Card className="border-white/15 bg-white/[0.03]">
+                            <CardHeader><CardTitle className="text-white">{editingBlock ? '✏️ Edit Block' : '📅 Schedule Focus Block'}</CardTitle></CardHeader>
                             <CardContent>
                                 <form onSubmit={editingBlock ? handleSaveEdit : handleCreate} className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2"><Label>Title</Label><Input required value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="e.g. Deep Work on API" /></div>
+                                    <div className="space-y-2"><Label className="text-white/60">Title</Label><Input required value={title} onChange={(e: any) => setTitle(e.target.value)} placeholder="e.g. Deep Work on API" className="bg-white/[0.02] border-white/10 text-white placeholder-white/20" /></div>
                                     <div className="space-y-2">
-                                        <Label>Day</Label>
-                                        <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background" value={day} onChange={(e: any) => setDay(e.target.value)}>
-                                            {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                                        <Label className="text-white/60">Day</Label>
+                                        <select className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.02] text-white px-3 py-2 text-sm" value={day} onChange={(e: any) => setDay(e.target.value)}>
+                                            {DAYS.map(d => <option key={d} value={d} className="bg-[#0a0a0a]">{d}</option>)}
                                         </select>
                                     </div>
-                                    <div className="space-y-2"><Label>Start Time</Label><Input type="time" required value={startTime} onChange={(e: any) => setStartTime(e.target.value)} /></div>
+                                    <div className="space-y-2"><Label className="text-white/60">Start Time</Label><Input type="time" required value={startTime} onChange={(e: any) => setStartTime(e.target.value)} className="bg-white/[0.02] border-white/10 text-white" /></div>
                                     <div className="space-y-2">
-                                        <Label>Duration (Minutes)</Label>
-                                        <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background" value={duration} onChange={(e: any) => setDuration(Number(e.target.value))}>
-                                            {DURATIONS.map(d => <option key={d} value={d}>{d} mins</option>)}
+                                        <Label className="text-white/60">Duration (Minutes)</Label>
+                                        <select className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.02] text-white px-3 py-2 text-sm" value={duration} onChange={(e: any) => setDuration(Number(e.target.value))}>
+                                            {DURATIONS.map(d => <option key={d} value={d} className="bg-[#0a0a0a]">{d} mins</option>)}
                                         </select>
                                     </div>
-                                    <div className="space-y-2"><Label>Reminder (Minutes before start)</Label><Input type="number" required value={reminderTime} onChange={(e: any) => setReminderTime(Number(e.target.value))} /></div>
-                                    <div className="space-y-2 md:col-span-2"><Label>Goal / Description</Label><Input value={description} onChange={(e: any) => setDescription(e.target.value)} placeholder="What will you accomplish?" /></div>
+                                    <div className="space-y-2"><Label className="text-white/60">Reminder (Minutes before)</Label><Input type="number" required value={reminderTime} onChange={(e: any) => setReminderTime(Number(e.target.value))} className="bg-white/[0.02] border-white/10 text-white" /></div>
+                                    <div className="space-y-2 md:col-span-2"><Label className="text-white/60">Goal / Description</Label><Input value={description} onChange={(e: any) => setDescription(e.target.value)} placeholder="What will you accomplish?" className="bg-white/[0.02] border-white/10 text-white placeholder-white/20" /></div>
                                     <div className="md:col-span-2 flex justify-end gap-2 mt-2">
                                         <motion.div whileTap={{ scale: 0.93 }} transition={spring}>
-                                            <Button variant="ghost" type="button" onClick={() => { setIsAdding(false); cancelEditing(); }}>Cancel</Button>
+                                            <Button variant="ghost" type="button" onClick={() => { setIsAdding(false); cancelEditing(); }} className="text-white/40 hover:text-white">Cancel</Button>
                                         </motion.div>
                                         <motion.div whileTap={{ scale: 0.93 }} transition={spring}>
-                                            <Button type="submit" disabled={saving}>{saving ? 'Saving...' : editingBlock ? 'Update Block' : 'Save Block'}</Button>
+                                            <Button type="submit" disabled={saving} className="bg-white text-black hover:bg-white/90">{saving ? 'Saving...' : editingBlock ? 'Update Block' : 'Save Block'}</Button>
                                         </motion.div>
                                     </div>
                                 </form>
@@ -167,7 +171,7 @@ export default function SchedulePage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: dayIndex * 0.05, ...gentleSpring }}
                     >
-                        <h3 className="font-semibold text-center border-b pb-2">{d}</h3>
+                        <h3 className="font-semibold text-center border-b border-white/10 pb-2 text-white/60 text-sm">{d}</h3>
                         <div className="flex flex-col gap-3">
                             <AnimatePresence>
                                 {blocks.filter(b => b.day === d).map((block, i) => (
@@ -182,27 +186,29 @@ export default function SchedulePage() {
                                     >
                                         <motion.div whileHover={{ y: -3, scale: 1.02 }} transition={{ ...spring, stiffness: 400 }}>
                                             <Link href={`/focus/${block.id}`}>
-                                                <div className={`p-3 rounded-md border cursor-pointer transition-colors shadow-sm
-                                                    ${block.status === 'COMPLETED' ? 'bg-secondary/40 border-secondary' : 'bg-card hover:border-primary hover:shadow-md'}
-                                                `}>
+                                                <div className={`p-3 rounded-lg border cursor-pointer transition-colors
+                                                    ${block.status === 'COMPLETED'
+                                                        ? 'bg-white/[0.02] border-white/5 opacity-60'
+                                                        : 'bg-white/[0.02] border-white/10 hover:border-white/20'
+                                                    }`}>
                                                     <div className="flex justify-between items-start mb-2">
-                                                        <span className="text-xs font-medium text-muted-foreground flex items-center">
+                                                        <span className="text-xs font-medium text-white/30 flex items-center">
                                                             <Clock className="w-3 h-3 mr-1" /> {block.startTime}
                                                         </span>
-                                                        {block.status === 'COMPLETED' && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                                                        {block.status === 'COMPLETED' && <CheckCircle2 className="w-4 h-4 text-white/40" />}
                                                     </div>
-                                                    <p className="font-medium text-sm leading-tight mb-1">{block.title}</p>
-                                                    <p className="text-xs text-muted-foreground line-clamp-2">{block.description}</p>
+                                                    <p className="font-medium text-sm leading-tight mb-1 text-white">{block.title}</p>
+                                                    <p className="text-xs text-white/30 line-clamp-2">{block.description}</p>
                                                 </div>
                                             </Link>
                                         </motion.div>
                                         <div className="absolute top-1 right-1 flex gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300">
                                             <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} transition={spring}
-                                                className="p-1 rounded hover:bg-accent" onClick={(e) => startEditing(block, e)} title="Edit">
+                                                className="p-1 rounded hover:bg-white/5 text-white/30 hover:text-white/60" onClick={(e) => startEditing(block, e)} title="Edit">
                                                 <Pencil className="w-3 h-3" />
                                             </motion.button>
                                             <motion.button whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.8 }} transition={spring}
-                                                className="p-1 rounded hover:bg-destructive/10 text-destructive" onClick={(e) => handleDelete(block.id, e)} title="Delete">
+                                                className="p-1 rounded hover:bg-white/5 text-white/30 hover:text-white/60" onClick={(e) => handleDelete(block.id, e)} title="Delete">
                                                 <Trash2 className="w-3 h-3" />
                                             </motion.button>
                                         </div>
@@ -210,7 +216,7 @@ export default function SchedulePage() {
                                 ))}
                             </AnimatePresence>
                             {blocks.filter(b => b.day === d).length === 0 && (
-                                <div className="text-center p-4 border border-dashed rounded-md text-muted-foreground text-xs">Empty</div>
+                                <div className="text-center p-4 border border-dashed border-white/5 rounded-lg text-white/15 text-xs">Empty</div>
                             )}
                         </div>
                     </motion.div>

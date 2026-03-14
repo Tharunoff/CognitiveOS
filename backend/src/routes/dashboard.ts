@@ -1,0 +1,224 @@
+import express from 'express';
+import { PrismaClient } from '@prisma/client';
+import { authMiddleware } from '../middlewares/auth';
+import { generateMorningBrief, detectPatterns, draftWeeklyMission } from '../services/ai';
+
+const router = express.Router();
+const prisma = new PrismaClient();
+
+// ─── MORNING BRIEF ────────────────────────────────────────
+router.get('/brief', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        const todayStr = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+
+        const [todayBlocks, allIdeas, streak, completedBlocks] = await Promise.all([
+            prisma.timeBlock.findMany({ where: { userId, day: todayStr }, orderBy: { startTime: 'asc' } }),
+            prisma.idea.findMany({ where: { userId, archived: false }, orderBy: { updatedAt: 'desc' }, take: 30 }),
+            prisma.userStreak.findUnique({ where: { userId } }),
+            prisma.timeBlock.findMany({ where: { userId, status: 'COMPLETED' } })
+        ]);
+
+        const decayingIdeas = allIdeas.filter(i => i.decayScore < 0.4);
+        const recentIdeas = allIdeas.filter(i => {
+            const daysSince = (Date.now() - i.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+            return daysSince <= 7;
+        });
+
+        // Calculate deep work hours from completed blocks this week
+        const totalDeepWorkHours = completedBlocks.length;
+
+        const brief = await generateMorningBrief({
+            todayBlocks,
+            decayingIdeas,
+            recentIdeas,
+            streak,
+            totalDeepWorkHours
+        });
+
+        res.json({
+            brief,
+            todayBlocks,
+            decayingIdeas: decayingIdeas.slice(0, 3),
+            stats: {
+                streak: streak?.currentStreak || 0,
+                longestStreak: streak?.longestStreak || 0,
+                deepWorkHours: totalDeepWorkHours,
+                activeIdeas: allIdeas.filter(i => !i.archived).length,
+                decayingCount: decayingIdeas.length
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to generate brief' });
+    }
+});
+
+// ─── PATTERN RADAR ────────────────────────────────────────
+router.get('/patterns', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        const [ideas, blocks] = await Promise.all([
+            prisma.idea.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 30 }),
+            prisma.timeBlock.findMany({ where: { userId, status: 'COMPLETED' }, take: 20 })
+        ]);
+        const patterns = await detectPatterns(ideas, blocks);
+        res.json(patterns);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Pattern detection failed' });
+    }
+});
+
+// ─── WEEKLY MISSION ───────────────────────────────────────
+router.get('/mission', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        const [activeIdeas, blocks, decayingIdeas] = await Promise.all([
+            prisma.idea.findMany({ where: { userId, archived: false }, orderBy: { updatedAt: 'desc' }, take: 20 }),
+            prisma.timeBlock.findMany({ where: { userId } }),
+            prisma.idea.findMany({ where: { userId, archived: false, decayScore: { lt: 0.4 } } })
+        ]);
+        const mission = await draftWeeklyMission(activeIdeas, blocks, decayingIdeas);
+        res.json(mission);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Mission drafting failed' });
+    }
+});
+
+// ─── STREAK ───────────────────────────────────────────────
+router.get('/streak', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        let streak = await prisma.userStreak.findUnique({ where: { userId } });
+        if (!streak) {
+            streak = await prisma.userStreak.create({ data: { userId } });
+        }
+        res.json(streak);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to get streak' });
+    }
+});
+
+router.post('/streak/record', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        let streak = await prisma.userStreak.findUnique({ where: { userId } });
+        if (!streak) {
+            streak = await prisma.userStreak.create({ data: { userId } });
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const lastActive = streak.lastActiveDate ? new Date(streak.lastActiveDate) : null;
+        if (lastActive) lastActive.setHours(0, 0, 0, 0);
+
+        if (lastActive && lastActive.getTime() === today.getTime()) {
+            return res.json(streak); // Already recorded today
+        }
+
+        const daysSinceLast = lastActive ? Math.floor((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24)) : 999;
+
+        let newStreak = streak.currentStreak;
+        let freezesUsed = streak.freezesUsed;
+
+        if (daysSinceLast === 1) {
+            newStreak += 1;
+        } else if (daysSinceLast === 2 && streak.freezesAvailable - streak.freezesUsed > 0) {
+            newStreak += 1;
+            freezesUsed += 1;
+        } else if (daysSinceLast > 1) {
+            newStreak = 1; // Reset
+        }
+
+        const updated = await prisma.userStreak.update({
+            where: { userId },
+            data: {
+                currentStreak: newStreak,
+                longestStreak: Math.max(streak.longestStreak, newStreak),
+                lastActiveDate: new Date(),
+                totalActiveDays: streak.totalActiveDays + 1,
+                freezesUsed
+            }
+        });
+        res.json(updated);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to record streak' });
+    }
+});
+
+// ─── WEEKLY REVIEW ────────────────────────────────────────
+router.get('/weekly-review', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+
+        const [blocks, ideas, decayingIdeas] = await Promise.all([
+            prisma.timeBlock.findMany({ where: { userId } }),
+            prisma.idea.findMany({ where: { userId, createdAt: { gte: weekAgo } } }),
+            prisma.idea.findMany({ where: { userId, archived: false, decayScore: { lt: 0.4 } }, select: { id: true, title: true, decayScore: true } })
+        ]);
+
+        const completedBlocks = blocks.filter(b => b.status === 'COMPLETED').length;
+
+        res.json({
+            blocksTotal: blocks.length,
+            blocksCompleted: completedBlocks,
+            ideasCreated: ideas.length,
+            decayingIdeas,
+            completionRate: blocks.length > 0 ? Math.round((completedBlocks / blocks.length) * 100) : 0
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to get weekly review' });
+    }
+});
+
+router.post('/weekly-review', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    const { moodRating, decisions } = req.body;
+    try {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+
+        const [blocks, ideas, decayingIdeas] = await Promise.all([
+            prisma.timeBlock.findMany({ where: { userId } }),
+            prisma.idea.findMany({ where: { userId, createdAt: { gte: weekAgo } } }),
+            prisma.idea.findMany({ where: { userId, archived: false, decayScore: { lt: 0.4 } } })
+        ]);
+
+        const review = await prisma.weeklyReview.create({
+            data: {
+                userId,
+                weekStart: weekAgo,
+                blocksTotal: blocks.length,
+                blocksCompleted: blocks.filter(b => b.status === 'COMPLETED').length,
+                ideasCreated: ideas.length,
+                ideasDecayed: decayingIdeas.length,
+                moodRating,
+                decisions: decisions ? JSON.stringify(decisions) : null,
+                completedAt: new Date()
+            }
+        });
+
+        // Process archive decisions
+        if (decisions && Array.isArray(decisions)) {
+            for (const d of decisions) {
+                if (d.action === 'archive' && d.ideaId) {
+                    await prisma.idea.update({ where: { id: d.ideaId }, data: { archived: true } });
+                }
+            }
+        }
+
+        res.json(review);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to save weekly review' });
+    }
+});
+
+export default router;

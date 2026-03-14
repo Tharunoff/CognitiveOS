@@ -8,20 +8,35 @@ datasource db {
 }
 
 model User {
-  id           String      @id @default(uuid())
-  email        String      @unique
-  passwordHash String
-  createdAt    DateTime    @default(now())
-  timeBlocks   TimeBlock[]
+  id            String        @id @default(uuid())
+  email         String        @unique
+  passwordHash  String
+  createdAt     DateTime      @default(now())
+  timeBlocks    TimeBlock[]
+  ideas         Idea[]
+  streak        UserStreak?
+  weeklyReviews WeeklyReview[]
 }
 
 model Idea {
-  id        String        @id @default(uuid())
-  title     String
-  problem   String
-  type      String        @default("Personal")
-  createdAt DateTime      @default(now())
-  sections  IdeaSection[]
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  problem     String
+  type        String        @default("Work")
+  subType     String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  lastVisited DateTime?
+  decayScore  Float         @default(1.0)
+  priority    Int           @default(0)
+  archived    Boolean       @default(false)
+  sections    IdeaSection[]
+  tags        IdeaTag[]
+  sourceLinks IdeaLink[]    @relation("source")
+  targetLinks IdeaLink[]    @relation("target")
+  revisions   IdeaRevision[]
 }
 
 model IdeaSection {
@@ -33,17 +48,46 @@ model IdeaSection {
   orderIndex  Int
 }
 
+model IdeaTag {
+  id     String @id @default(uuid())
+  ideaId String
+  idea   Idea   @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  name   String
+
+  @@unique([ideaId, name])
+}
+
+model IdeaLink {
+  id        String   @id @default(uuid())
+  sourceId  String
+  targetId  String
+  source    Idea     @relation("source", fields: [sourceId], references: [id], onDelete: Cascade)
+  target    Idea     @relation("target", fields: [targetId], references: [id], onDelete: Cascade)
+  linkType  String
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model IdeaRevision {
+  id        String   @id @default(uuid())
+  ideaId    String
+  idea      Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  snapshot  String
+  editNote  String?
+  createdAt DateTime @default(now())
+}
+
 model TimeBlock {
   id           String     @id @default(uuid())
   userId       String
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   title        String
   description  String?
-  day          String     // "Monday", etc.
-  startTime    String     // e.g. "09:00"
-  endTime      String     // e.g. "10:30"
-  reminderTime Int        // minutes before start time
-  status       String     @default("SCHEDULED") // "SCHEDULED", "COMPLETED"
+  day          String
+  startTime    String
+  endTime      String
+  reminderTime Int
+  status       String     @default("SCHEDULED")
   logs         BlockLog[]
 }
 
@@ -62,4 +106,32 @@ model LearningTopic {
   examAnswer      String
   bulletNotes     String
   stepExplanation String
+}
+
+model UserStreak {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActiveDate   DateTime?
+  totalActiveDays  Int       @default(0)
+  freezesAvailable Int       @default(2)
+  freezesUsed      Int       @default(0)
+}
+
+model WeeklyReview {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart       DateTime
+  blocksTotal     Int
+  blocksCompleted Int
+  ideasCreated    Int
+  ideasDecayed    Int       @default(0)
+  moodRating      Int?
+  aiInsights      String?
+  decisions       String?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
 }
