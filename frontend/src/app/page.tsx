@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Brain, Clock, ChevronRight, Archive, Eye, AlertTriangle, Lightbulb, Target, Zap } from 'lucide-react';
+import { Flame, Brain, Clock, ChevronRight, Archive, Eye, AlertTriangle, Lightbulb, Target, Zap, RefreshCw } from 'lucide-react';
 
 const spring = { type: 'spring' as const, stiffness: 300, damping: 30 };
 const gentleSpring = { type: 'spring' as const, stiffness: 200, damping: 25 };
 
 export default function DashboardPage() {
     const [brief, setBrief] = useState<any>(null);
+    const [quote, setQuote] = useState<any>(null);
     const [todayBlocks, setTodayBlocks] = useState<any[]>([]);
     const [decayingIdeas, setDecayingIdeas] = useState<any[]>([]);
     const [stats, setStats] = useState<any>({});
@@ -27,10 +28,11 @@ export default function DashboardPage() {
     useEffect(() => {
         async function loadData() {
             try {
-                const [briefRes, patternsRes, missionRes] = await Promise.allSettled([
+                const [briefRes, patternsRes, missionRes, quoteRes] = await Promise.allSettled([
                     apiFetch('/dashboard/brief'),
                     apiFetch('/dashboard/patterns'),
                     apiFetch('/dashboard/mission'),
+                    apiFetch('/dashboard/quote'),
                 ]);
 
                 if (briefRes.status === 'fulfilled') {
@@ -45,9 +47,12 @@ export default function DashboardPage() {
                 if (missionRes.status === 'fulfilled') {
                     setMission(missionRes.value);
                 }
+                if (quoteRes.status === 'fulfilled') {
+                    setQuote(quoteRes.value);
+                }
 
                 // Check for AI limit errors
-                const results = [briefRes, patternsRes, missionRes];
+                const results = [briefRes, patternsRes, missionRes, quoteRes];
                 for (const res of results) {
                     if (res.status === 'rejected' && res.reason?.message?.includes('limit reached')) {
                         setLimitError("Daily AI limit reached. Content will refresh tomorrow.");
@@ -74,6 +79,17 @@ export default function DashboardPage() {
         }
         loadData();
     }, []);
+
+    const handleRefreshQuote = async () => {
+        setQuote(null);
+        try {
+            await apiFetch('/dashboard/quote/reset', { method: 'POST' });
+            const newQuote = await apiFetch('/dashboard/quote');
+            setQuote(newQuote);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const handleArchive = async (ideaId: string) => {
         try {
@@ -166,15 +182,30 @@ export default function DashboardPage() {
                                     </motion.button>
                                 </div>
 
-                                {brief?.quote && (
+                                {quote && (
                                     <motion.div
-                                        className="border-l-2 border-white/10 pl-4 mb-6"
+                                        className="border-l-2 border-white/10 pl-4 mb-6 relative group"
                                         initial={{ opacity: 0, x: -10 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ ...gentleSpring, delay: 0.2 }}
                                     >
-                                        <p className="text-white/50 italic text-sm">"{brief.quote.text}"</p>
-                                        <p className="text-white/30 text-xs mt-1">— {brief.quote.author}</p>
+                                        <div className="flex justify-between items-start gap-4">
+                                            <div>
+                                                <p className="text-white/50 italic text-sm">"{quote.quote}"</p>
+                                                <p className="text-white/30 text-xs mt-1">— {quote.author}</p>
+                                                {quote.meaning && <p className="text-white/20 text-xs mt-2">{quote.meaning}</p>}
+                                            </div>
+                                            <motion.button
+                                                className="p-1.5 rounded-full hover:bg-white/5 text-white/30 hover:text-white/70 transition-colors opacity-0 group-hover:opacity-100"
+                                                onClick={handleRefreshQuote}
+                                                whileHover={{ scale: 1.1, rotate: 180 }}
+                                                whileTap={{ scale: 0.9 }}
+                                                transition={{ duration: 0.3 }}
+                                                title="Refresh daily quote"
+                                            >
+                                                <RefreshCw className="w-4 h-4" />
+                                            </motion.button>
+                                        </div>
                                     </motion.div>
                                 )}
 

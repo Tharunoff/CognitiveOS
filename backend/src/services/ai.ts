@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { getGeminiKey } from '../utils/geminiKeyRotator';
+import { getTodayKey } from '../utils/dailyCache';
 dotenv.config();
 
 async function callAI(prompt: string): Promise<any> {
@@ -344,12 +345,37 @@ Return JSON:
   }
 }
 
+// ─── DAILY QUOTE ──────────────────────────────────────────
+export async function generateDailyQuote() {
+  const quotePrompt = `Generate a unique motivational business quote for today's date: ${getTodayKey()}.
+
+Rules:
+- Must be from a real named business leader or entrepreneur only
+- Never use anonymous proverbs, Chinese proverbs, or unknown authors
+- Choose from: Steve Jobs, Elon Musk, Naval Ravikant, Jeff Bezos, Warren Buffett, Charlie Munger, Paul Graham, Peter Thiel, Sara Blakely, Reid Hoffman, Sam Altman, Marc Andreessen, Patrick Collison, Jensen Huang, Oprah Winfrey, Howard Schultz
+- Never repeat a quote used recently
+
+Return only this exact JSON format with no markdown or extra text:
+{
+  "quote": "the quote text here",
+  "author": "First Last",
+  "meaning": "1-2 sentence business lesson explanation"
+}`;
+  try {
+    return await callAI(quotePrompt);
+  } catch {
+    return {
+      quote: "The best time to plant a tree was 20 years ago. The second best time is now.",
+      author: "Chinese Proverb",
+      meaning: "Don't wait for the perfect time to start."
+    };
+  }
+}
+
 // ─── MORNING BRIEF ────────────────────────────────────────
 export async function generateMorningBrief(data: { todayBlocks: any[]; decayingIdeas: any[]; recentIdeas: any[]; streak: any; totalDeepWorkHours: number }) {
-  const todayDate = new Date().toISOString().split('T')[0];
   const prompt = `
 Generate a concise, motivating morning brief for a productivity-focused user.
-Today's date is ${todayDate}.
 
 Today's data:
 - ${data.todayBlocks.length} focus blocks scheduled: ${data.todayBlocks.map(b => `"${b.title}" at ${b.startTime}`).join(', ') || 'None'}
@@ -358,14 +384,9 @@ Today's data:
 - Current streak: ${data.streak?.currentStreak || 0} days (best: ${data.streak?.longestStreak || 0})
 - Deep work hours this week: ${data.totalDeepWorkHours}
 
-For the quote field, generate a unique motivational business quote for today.
-Pick a different well-known business leader or entrepreneur each time (examples: Steve Jobs, Elon Musk, Naval Ravikant, Jeff Bezos, Warren Buffett, Charlie Munger, Paul Graham, Peter Thiel, Sara Blakely, Reid Hoffman, Marc Andreessen, Oprah Winfrey, Ray Dalio, Sam Altman, Brian Chesky).
-Never repeat the same quote. Use the date ${todayDate} as a seed to vary your selection.
-
 Return JSON:
 {
   "greeting": "string — short, warm greeting",
-  "quote": { "text": "string — the exact quote text", "author": "string — the person's name" },
   "primary_focus": "string — the most important thing to do today",
   "fading_alert": "string or null — mention a specific fading idea if any",
   "pattern_insight": "string or null — a brief insight about recent patterns",
@@ -379,7 +400,6 @@ Be concise. No fluff. Every word should earn its place.
   } catch {
     return {
       greeting: "Good morning.",
-      quote: { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb" },
       primary_focus: data.todayBlocks.length > 0 ? `Focus on "${data.todayBlocks[0]?.title}"` : "No blocks scheduled — capture a thought or plan your day.",
       fading_alert: null,
       pattern_insight: null,

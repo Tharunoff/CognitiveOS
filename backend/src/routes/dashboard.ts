@@ -1,11 +1,35 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middlewares/auth';
-import { generateMorningBrief, detectPatterns, draftWeeklyMission } from '../services/ai';
-import { getCached, setCached } from '../utils/dailyCache';
+import { generateMorningBrief, generateDailyQuote, detectPatterns, draftWeeklyMission } from '../services/ai';
+import { getCached, setCached, clearCached } from '../utils/dailyCache';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
+// ─── DAILY QUOTE ──────────────────────────────────────────
+router.get('/quote', authMiddleware, async (req, res) => {
+    try {
+        const cached = await getCached('daily_quote');
+        if (cached) {
+            console.log('[Quote] Serving from cache');
+            return res.json(cached);
+        }
+
+        console.log('[Quote] No cache found, generating from Gemini...');
+        const quote = await generateDailyQuote();
+        await setCached('daily_quote', quote);
+        return res.json(quote);
+    } catch (e) {
+        console.error('[Quote] Error:', e);
+        return res.status(500).json({ error: 'Failed to generate quote' });
+    }
+});
+
+router.post('/quote/reset', async (req, res) => {
+    await clearCached('daily_quote');
+    res.json({ message: 'Quote cache cleared. Refresh dashboard to get new quote.' });
+});
 
 // ─── MORNING BRIEF ────────────────────────────────────────
 router.get('/brief', authMiddleware, async (req, res) => {
