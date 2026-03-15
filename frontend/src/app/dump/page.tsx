@@ -37,9 +37,9 @@ export default function BrainDumpPage() {
             await new Promise(resolve => setTimeout(resolve, 600));
 
             router.push(`/ideas/${idea.id}`);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert("Failed to structure thought. Check backend connection.");
+            alert(err?.message || 'Failed to structure thought. Check backend connection.');
             setLoading(false);
             setStage('idle');
         }

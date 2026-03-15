@@ -162,7 +162,7 @@ export default function LearningCompressorPage() {
         try {
             const result = await apiFetch('/learning/compress', { method: 'POST', body: JSON.stringify({ topic }) });
             setHistory([result, ...history]); setTopic('');
-        } catch (err) { console.error(err); alert('Failed to compress learning topic.'); }
+        } catch (err: any) { console.error(err); alert(err?.message || 'Failed to compress learning topic.'); }
         finally { setLoading(false); }
     };
 

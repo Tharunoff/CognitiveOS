@@ -5,6 +5,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import { Header } from '@/components/Header';
 import { ReminderSystem } from '@/components/ReminderSystem';
 import { PWARegister } from '@/components/PWARegister';
+import KeepAlive from '@/components/KeepAlive';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -49,6 +50,7 @@ export default function RootLayout({
             {children}
           </main>
           <PWARegister />
+          <KeepAlive />
         </AuthProvider>
       </body>
     </html>

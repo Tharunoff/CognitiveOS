@@ -18,15 +18,16 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// Health check — placed before all routes so keep-alive pings always succeed
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/ideas', ideasRoutes);
 app.use('/api/learning', learningRoutes);
 app.use('/api/blocks', blocksRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
-});
 
 app.listen(PORT, () => {
     console.log(`CognitiveOS Backend running on port ${PORT}`);
