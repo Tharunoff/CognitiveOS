@@ -14,6 +14,7 @@ const navItems = [
     { href: '/dump', label: 'Brain Dump' },
     { href: '/ideas', label: 'Vault' },
     { href: '/learn', label: 'Learn' },
+    { href: '/questions', label: 'Questions' },
     { href: '/schedule', label: 'Schedule' },
 ];
 

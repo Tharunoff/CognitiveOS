@@ -16,6 +16,7 @@ model User {
   ideas         Idea[]
   streak        UserStreak?
   weeklyReviews WeeklyReview[]
+  questions     Question[]
 }
 
 model Idea {
@@ -149,4 +150,12 @@ model ApiKeyUsage {
   keyName String @unique
   count   Int    @default(0)
   date    String
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

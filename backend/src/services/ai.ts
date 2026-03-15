@@ -346,8 +346,10 @@ Return JSON:
 
 // ─── MORNING BRIEF ────────────────────────────────────────
 export async function generateMorningBrief(data: { todayBlocks: any[]; decayingIdeas: any[]; recentIdeas: any[]; streak: any; totalDeepWorkHours: number }) {
+  const todayDate = new Date().toISOString().split('T')[0];
   const prompt = `
 Generate a concise, motivating morning brief for a productivity-focused user.
+Today's date is ${todayDate}.
 
 Today's data:
 - ${data.todayBlocks.length} focus blocks scheduled: ${data.todayBlocks.map(b => `"${b.title}" at ${b.startTime}`).join(', ') || 'None'}
@@ -356,10 +358,14 @@ Today's data:
 - Current streak: ${data.streak?.currentStreak || 0} days (best: ${data.streak?.longestStreak || 0})
 - Deep work hours this week: ${data.totalDeepWorkHours}
 
+For the quote field, generate a unique motivational business quote for today.
+Pick a different well-known business leader or entrepreneur each time (examples: Steve Jobs, Elon Musk, Naval Ravikant, Jeff Bezos, Warren Buffett, Charlie Munger, Paul Graham, Peter Thiel, Sara Blakely, Reid Hoffman, Marc Andreessen, Oprah Winfrey, Ray Dalio, Sam Altman, Brian Chesky).
+Never repeat the same quote. Use the date ${todayDate} as a seed to vary your selection.
+
 Return JSON:
 {
   "greeting": "string — short, warm greeting",
-  "quote": { "text": "string — an inspiring quote", "author": "string" },
+  "quote": { "text": "string — the exact quote text", "author": "string — the person's name" },
   "primary_focus": "string — the most important thing to do today",
   "fading_alert": "string or null — mention a specific fading idea if any",
   "pattern_insight": "string or null — a brief insight about recent patterns",

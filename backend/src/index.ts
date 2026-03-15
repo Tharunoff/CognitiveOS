@@ -8,6 +8,7 @@ import ideasRoutes from './routes/ideas';
 import learningRoutes from './routes/learning';
 import blocksRoutes from './routes/blocks';
 import dashboardRoutes from './routes/dashboard';
+import questionsRoutes from './routes/questions';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use('/api/ideas', ideasRoutes);
 app.use('/api/learning', learningRoutes);
 app.use('/api/blocks', blocksRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/questions', questionsRoutes);
 
 app.listen(PORT, () => {
     console.log(`CognitiveOS Backend running on port ${PORT}`);
