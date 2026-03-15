@@ -1,54 +1,49 @@
 import { PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
 
-dotenv.config();
 const prisma = new PrismaClient();
-const MAX_CALLS_PER_DAY = 20;
+
+const KEY_NAMES = [
+  'GEMINI_API_KEY_1',
+  'GEMINI_API_KEY_2',
+  'GEMINI_API_KEY_3',
+  'GEMINI_API_KEY_4',
+  'GEMINI_API_KEY_5',
+];
+
+const DAILY_LIMIT = 20;
 
 export async function getGeminiKey(): Promise<string> {
   const today = new Date().toDateString();
-  const keys = [
-    'GEMINI_API_KEY_1',
-    'GEMINI_API_KEY_2',
-    'GEMINI_API_KEY_3',
-    'GEMINI_API_KEY_4',
-    'GEMINI_API_KEY_5'
-  ];
 
-  let selectedKeyName: string | null = null;
-  let minCount = Infinity;
+  for (const keyName of KEY_NAMES) {
+    const apiKey = process.env[keyName];
 
-  for (const keyName of keys) {
+    // Skip if this env variable is not set or empty
+    if (!apiKey || apiKey.trim() === '') continue;
+
+    // Find or create usage record for this key
     let usage = await prisma.apiKeyUsage.findUnique({
-      where: { keyName }
+      where: { keyName },
     });
 
-    if (!usage) {
-      usage = await prisma.apiKeyUsage.create({
-        data: { keyName, count: 0, date: today }
-      });
-    } else if (usage.date !== today) {
-      usage = await prisma.apiKeyUsage.update({
+    // Reset if it's a new day
+    if (!usage || usage.date !== today) {
+      usage = await prisma.apiKeyUsage.upsert({
         where: { keyName },
-        data: { count: 0, date: today }
+        update: { count: 0, date: today },
+        create: { keyName, count: 0, date: today },
       });
     }
 
-    if (usage.count < MAX_CALLS_PER_DAY && usage.count < minCount) {
-      minCount = usage.count;
-      selectedKeyName = keyName;
+    // Use this key if under limit
+    if (usage.count < DAILY_LIMIT) {
+      await prisma.apiKeyUsage.update({
+        where: { keyName },
+        data: { count: { increment: 1 } },
+      });
+      return apiKey;
     }
   }
 
-  if (!selectedKeyName) {
-    throw new Error('Daily Gemini limit reached. Resets tomorrow.');
-  }
-
-  // Increment usage for selected key
-  await prisma.apiKeyUsage.update({
-    where: { keyName: selectedKeyName },
-    data: { count: { increment: 1 } }
-  });
-
-  return selectedKeyName;
+  throw new Error('Daily Gemini limit reached across all keys. Resets tomorrow.');
 }

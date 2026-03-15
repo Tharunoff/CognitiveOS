@@ -3,13 +3,19 @@ import dotenv from 'dotenv';
 import { getGeminiKey } from '../utils/geminiKeyRotator';
 dotenv.config();
 
-async function getNextAIClient() {
-  const key = await getGeminiKey();
-  return new GoogleGenAI({ apiKey: key });
-}
-
 async function callAI(prompt: string): Promise<any> {
-  const ai = await getNextAIClient();
+  let apiKey: string;
+
+  try {
+    apiKey = await getGeminiKey();
+  } catch (e) {
+    // Fallback to original single key if rotator fails
+    const fallback = process.env.GEMINI_API_KEY;
+    if (!fallback) throw new Error('No Gemini API key available.');
+    apiKey = fallback;
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: prompt,
