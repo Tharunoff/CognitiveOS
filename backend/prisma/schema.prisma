@@ -17,6 +17,8 @@ model User {
   streak        UserStreak?
   weeklyReviews WeeklyReview[]
   questions     Question[]
+  domains       Domain[]
+  notes         Note[]
 }
 
 model Idea {
@@ -158,4 +160,27 @@ model Question {
   createdAt DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Domain {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6366f1")
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes     Note[]
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  type      String   @default("normal")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domainId  String?
+  domain    Domain?  @relation(fields: [domainId], references: [id], onDelete: SetNull)
 }

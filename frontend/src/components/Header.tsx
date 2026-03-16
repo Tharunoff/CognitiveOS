@@ -15,6 +15,7 @@ const navItems = [
     { href: '/ideas', label: 'Vault' },
     { href: '/learn', label: 'Learn' },
     { href: '/questions', label: 'Questions' },
+    { href: '/notes', label: 'Notes' },
     { href: '/schedule', label: 'Schedule' },
 ];
 
