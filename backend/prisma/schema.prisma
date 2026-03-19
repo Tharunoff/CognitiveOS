@@ -8,37 +8,38 @@ datasource db {
 }
 
 model User {
-  id            String        @id @default(uuid())
-  email         String        @unique
-  passwordHash  String
-  createdAt     DateTime      @default(now())
-  timeBlocks    TimeBlock[]
-  ideas         Idea[]
-  streak        UserStreak?
-  weeklyReviews WeeklyReview[]
-  questions     Question[]
-  domains       Domain[]
-  notes         Note[]
+  id               String             @id @default(uuid())
+  email            String             @unique
+  passwordHash     String
+  createdAt        DateTime           @default(now())
+  timeBlocks       TimeBlock[]
+  ideas            Idea[]
+  streak           UserStreak?
+  weeklyReviews    WeeklyReview[]
+  questions        Question[]
+  domains          Domain[]
+  notes            Note[]
+  PushSubscription PushSubscription[]
 }
 
 model Idea {
-  id          String        @id @default(uuid())
+  id          String         @id @default(uuid())
   userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
   problem     String
-  type        String        @default("Work")
+  type        String         @default("Work")
   subType     String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   lastVisited DateTime?
-  decayScore  Float         @default(1.0)
-  priority    Int           @default(0)
-  archived    Boolean       @default(false)
+  decayScore  Float          @default(1.0)
+  priority    Int            @default(0)
+  archived    Boolean        @default(false)
   sections    IdeaSection[]
   tags        IdeaTag[]
-  sourceLinks IdeaLink[]    @relation("source")
-  targetLinks IdeaLink[]    @relation("target")
+  sourceLinks IdeaLink[]     @relation("source")
+  targetLinks IdeaLink[]     @relation("target")
   revisions   IdeaRevision[]
 }
 
@@ -81,17 +82,19 @@ model IdeaRevision {
 }
 
 model TimeBlock {
-  id           String     @id @default(uuid())
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title        String
-  description  String?
-  scheduledDate DateTime
-  startTime    String
-  endTime      String
-  reminderTime Int
-  status       String     @default("SCHEDULED")
-  logs         BlockLog[]
+  id              String     @id @default(uuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  scheduledDate   DateTime
+  startTime       String
+  endTime         String
+  reminderTime    Int
+  status          String     @default("SCHEDULED")
+  logs            BlockLog[]
+  reminderMinutes Int? // how many minutes before the block to send the alarm
+  reminded        Boolean    @default(false) // tracks if reminder has been sent already
 }
 
 model BlockLog {
@@ -183,4 +186,14 @@ model Note {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   domainId  String?
   domain    Domain?  @relation(fields: [domainId], references: [id], onDelete: SetNull)
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

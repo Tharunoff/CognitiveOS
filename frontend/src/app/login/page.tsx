@@ -1,4 +1,5 @@
 'use client';
+import { registerPushNotifications } from '@/utils/pushNotifications';
 
 import { useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
@@ -28,12 +29,15 @@ export default function LoginPage() {
 
         try {
             const endpoint = isLogin ? '/auth/login' : '/auth/register';
+
             const response = await apiFetch(endpoint, {
                 method: 'POST',
                 body: JSON.stringify({ email, password }),
             });
 
             login(response.user, response.token);
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            registerPushNotifications(apiUrl, response.token);
         } catch (err: any) {
             setError(err.message || 'Authentication failed');
         } finally {

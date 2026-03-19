@@ -7,7 +7,23 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Plus, Clock, CheckCircle2, Trash2, Pencil, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
+const reminderOptions = [
+  { label: 'No reminder', value: null },
+  { label: '5 minutes before', value: 5 },
+  { label: '10 minutes before', value: 10 },
+  { label: '15 minutes before', value: 15 },
+  { label: '30 minutes before', value: 30 },
+  { label: '1 hour before', value: 60 },
+  { label: '2 hours before', value: 120 },
+];
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const DURATIONS = [30, 45, 60, 90, 120, 180, 240];
 
@@ -30,7 +46,7 @@ export default function SchedulePage() {
     const [formDate, setFormDate] = useState(''); // YYYY-MM-DD
     const [startTime, setStartTime] = useState('09:00');
     const [duration, setDuration] = useState(60);
-    const [reminderTime, setReminderTime] = useState(15);
+    const [reminderMinutes, setReminderMinutes] = useState<number | null>(15);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => { fetchMonthBlocks(); }, [currentYear, currentMonth]);
@@ -57,7 +73,7 @@ export default function SchedulePage() {
         setFormDate(dateDefault ? dateDefault.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
         setStartTime('09:00');
         setDuration(60);
-        setReminderTime(15);
+        setReminderMinutes(15);
     };
 
     const handleCreate = async (e: React.FormEvent) => {
@@ -78,7 +94,8 @@ export default function SchedulePage() {
                     scheduledDate: formDate,
                     startTime,
                     endTime,
-                    reminderTime
+                    reminderTime: reminderMinutes,
+                    reminderMinutes
                 })
             });
             setIsAdding(false);
@@ -111,7 +128,8 @@ export default function SchedulePage() {
                     scheduledDate: formDate,
                     startTime,
                     endTime,
-                    reminderTime
+                    reminderTime: reminderMinutes,
+                    reminderMinutes
                 })
             });
             setEditingBlock(null);
@@ -151,7 +169,7 @@ export default function SchedulePage() {
         setDescription(desc);
         setFormDate(new Date(block.scheduledDate).toISOString().split('T')[0]);
         setStartTime(block.startTime);
-        setReminderTime(block.reminderTime);
+        setReminderMinutes(block.reminderMinutes !== undefined && block.reminderMinutes !== null ? block.reminderMinutes : block.reminderTime);
         
         const [sh, sm] = block.startTime.split(':').map(Number);
         const [eh, em] = block.endTime.split(':').map(Number);
@@ -398,8 +416,22 @@ export default function SchedulePage() {
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label className="text-white/60 text-xs">Reminder (Mins before)</Label>
-                                    <Input type="number" required value={reminderTime} onChange={(e: any) => setReminderTime(Number(e.target.value))} className="bg-[#0a0a0a] border-white/10 text-white text-sm" />
+                                    <Label className="text-white/60 text-xs">Reminder</Label>
+                                    <Select 
+                                        value={reminderMinutes === null ? 'null' : String(reminderMinutes)} 
+                                        onValueChange={(val) => setReminderMinutes(val === 'null' ? null : Number(val))}
+                                    >
+                                        <SelectTrigger className="w-full bg-[#0a0a0a] border-white/10 text-white text-sm">
+                                            <SelectValue placeholder="Select a reminder" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-[#121212] border-white/10 text-white">
+                                            {reminderOptions.map(opt => (
+                                                <SelectItem key={opt.label} value={opt.value === null ? 'null' : String(opt.value)} className="hover:bg-white/10 focus:bg-white/10 cursor-pointer">
+                                                    {opt.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label className="text-white/60 text-xs">Goal / Description</Label>

@@ -12,6 +12,8 @@ import questionsRoutes from './routes/questions';
 import notesRouter from './routes/notes';
 import notesAIRouter from './routes/notesAI';
 import domainsRouter from './routes/domains';
+import pushRouter from './routes/push';
+import { startAlarmScheduler } from './jobs/alarmScheduler';
 
 dotenv.config();
 
@@ -36,7 +38,10 @@ app.use('/api/questions', questionsRoutes);
 app.use('/api/notes', notesRouter);
 app.use('/api/notes', notesAIRouter);
 app.use('/api/domains', domainsRouter);
+app.use('/api/push', pushRouter);
 
 app.listen(PORT, () => {
     console.log(`CognitiveOS Backend running on port ${PORT}`);
 });
+
+startAlarmScheduler();

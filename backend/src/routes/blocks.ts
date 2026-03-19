@@ -33,14 +33,14 @@ router.get('/', authMiddleware, async (req, res) => {
 // Create a block
 router.post('/', authMiddleware, async (req, res) => {
     const userId = (req as any).user.id;
-    const { title, description, scheduledDate, day, startTime, endTime, reminderTime } = req.body;
+    const { title, description, scheduledDate, day, startTime, endTime, reminderTime, reminderMinutes } = req.body;
     
     // Support fallback to 'day' if frontend still sends it
     const parsedDate = new Date(scheduledDate || day);
 
     try {
         const block = await prisma.timeBlock.create({
-            data: { userId, title, description, scheduledDate: parsedDate, startTime, endTime, reminderTime, status: 'SCHEDULED' }
+            data: { userId, title, description, scheduledDate: parsedDate, startTime, endTime, reminderTime, reminderMinutes, status: 'SCHEDULED' }
         });
         res.json(block);
     } catch (error) {
@@ -72,9 +72,9 @@ router.post('/:id/log', authMiddleware, async (req, res) => {
 
 // Edit a block
 router.put('/:id', authMiddleware, async (req, res) => {
-    const { title, description, scheduledDate, day, startTime, endTime, reminderTime } = req.body;
+    const { title, description, scheduledDate, day, startTime, endTime, reminderTime, reminderMinutes } = req.body;
     try {
-        const dataToUpdate: any = { title, description, startTime, endTime, reminderTime };
+        const dataToUpdate: any = { title, description, startTime, endTime, reminderTime, reminderMinutes };
         if (scheduledDate || day) {
             dataToUpdate.scheduledDate = new Date(scheduledDate || day);
         }

@@ -1,0 +1,8 @@
+﻿src/app/login/page.tsx(31,1): error TS1232: An import declaration can only be used at the top level of a namespace or module.
+src/app/login/page.tsx(31,43): error TS2307: Cannot find module '@/utils/pushNotifications' or its corresponding type declarations.
+src/utils/pushNotifications.ts(19,7): error TS2322: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'string | BufferSource | null | undefined'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+src/utils/pushNotifications.ts(51,29): error TS2802: Type 'string' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.

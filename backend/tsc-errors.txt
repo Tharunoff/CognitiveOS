@@ -1,0 +1,15 @@
+﻿src/jobs/alarmScheduler.ts(22,11): error TS2353: Object literal may only specify known properties, and 'reminded' does not exist in type 'TimeBlockWhereInput'.
+src/jobs/alarmScheduler.ts(29,20): error TS2339: Property 'reminderMinutes' does not exist on type '{ id: string; userId: string; title: string; description: string | null; scheduledDate: Date; startTime: string; endTime: string; reminderTime: number; status: string; }'.
+src/jobs/alarmScheduler.ts(42,39): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/jobs/alarmScheduler.ts(43,41): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/jobs/alarmScheduler.ts(48,39): error TS2339: Property 'reminderMinutes' does not exist on type '{ id: string; userId: string; title: string; description: string | null; scheduledDate: Date; startTime: string; endTime: string; reminderTime: number; status: string; }'.
+src/jobs/alarmScheduler.ts(56,44): error TS2339: Property 'pushSubscription' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/jobs/alarmScheduler.ts(62,53): error TS2339: Property 'reminderMinutes' does not exist on type '{ id: string; userId: string; title: string; description: string | null; scheduledDate: Date; startTime: string; endTime: string; reminderTime: number; status: string; }'.
+src/jobs/alarmScheduler.ts(62,84): error TS2339: Property 'reminderMinutes' does not exist on type '{ id: string; userId: string; title: string; description: string | null; scheduledDate: Date; startTime: string; endTime: string; reminderTime: number; status: string; }'.
+src/jobs/alarmScheduler.ts(80,28): error TS2339: Property 'pushSubscription' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/jobs/alarmScheduler.ts(88,19): error TS2353: Object literal may only specify known properties, and 'reminded' does not exist in type '(Without<TimeBlockUpdateInput, TimeBlockUncheckedUpdateInput> & TimeBlockUncheckedUpdateInput) | (Without<...> & TimeBlockUpdateInput)'.
+src/routes/blocks.ts(43,110): error TS2353: Object literal may only specify known properties, and 'reminderMinutes' does not exist in type '(Without<TimeBlockCreateInput, TimeBlockUncheckedCreateInput> & TimeBlockUncheckedCreateInput) | (Without<...> & TimeBlockCreateInput)'.
+src/routes/push.ts(18,18): error TS2339: Property 'pushSubscription' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/push.ts(34,18): error TS2339: Property 'pushSubscription' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
