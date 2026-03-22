@@ -11,5 +11,17 @@ export function PWARegister() {
         }
     }, []);
 
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data?.type === 'PLAY_ALARM') {
+                    const audio = new Audio(event.data.sound);
+                    audio.volume = 1.0;
+                    audio.play().catch(e => console.log('Audio play failed:', e));
+                }
+            });
+        }
+    }, []);
+
     return null;
 }

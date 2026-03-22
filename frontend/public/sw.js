@@ -45,38 +45,58 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-self.addEventListener('push', function (event) {
+self.addEventListener('push', function(event) {
   if (!event.data) return;
 
-  const data = event.data.json();
+  let data;
+  try {
+    data = event.data.json();
+  } catch(e) {
+    data = { title: '⏰ Reminder', body: event.data.text(), sound: '/alarm.mp3' };
+  }
 
-  // Play custom alarm sound
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-192x192.png',
-      sound: data.sound,
-      vibrate: [300, 100, 300, 100, 300],
-      requireInteraction: true,
-      data: { blockId: data.blockId },
-    })
-  );
+  // Play alarm sound
+  const audioPromise = self.clients.matchAll({ type: 'window' }).then(clients => {
+    clients.forEach(client => {
+      client.postMessage({ type: 'PLAY_ALARM', sound: data.sound });
+    });
+  });
+
+  const notificationPromise = self.registration.showNotification(data.title, {
+    body: data.body,
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    vibrate: [500, 200, 500, 200, 500],
+    requireInteraction: true,
+    silent: false,
+    tag: 'cognitive-alarm-' + (data.blockId || Date.now()),
+    renotify: true,
+    actions: [
+      { action: 'open', title: '▶ Start Block' },
+      { action: 'dismiss', title: '✕ Dismiss' }
+    ],
+    data: {
+      blockId: data.blockId,
+      url: '/schedule'
+    }
+  });
+
+  event.waitUntil(Promise.all([audioPromise, notificationPromise]));
 });
 
-// Clicking notification opens the scheduler page
-self.addEventListener('notificationclick', function (event) {
+self.addEventListener('notificationclick', function(event) {
   event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      for (const client of clientList) {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+      for (const client of clients) {
         if (client.url.includes('/schedule') && 'focus' in client) {
           return client.focus();
         }
       }
-      if (clients.openWindow) {
-        return clients.openWindow('/schedule');
-      }
+      return self.clients.openWindow('/schedule');
     })
   );
 });

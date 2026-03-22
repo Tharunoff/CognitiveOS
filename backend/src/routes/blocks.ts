@@ -35,16 +35,23 @@ router.post('/', authMiddleware, async (req, res) => {
     const userId = (req as any).user.id;
     const { title, description, scheduledDate, day, startTime, endTime, reminderTime, reminderMinutes } = req.body;
     
+    // Explicitly parse reminderMinutes — it may come as a string from the frontend
+    const parsedReminderMinutes = reminderMinutes !== null && reminderMinutes !== undefined
+      ? parseInt(String(reminderMinutes), 10)
+      : null;
+
+    console.log(`[Blocks] Creating block: title="${title}" scheduledDate="${scheduledDate || day}" reminderMinutes=${parsedReminderMinutes}`);
+
     // Support fallback to 'day' if frontend still sends it
     const parsedDate = new Date(scheduledDate || day);
 
     try {
         const block = await prisma.timeBlock.create({
-            data: { userId, title, description, scheduledDate: parsedDate, startTime, endTime, reminderTime, reminderMinutes, status: 'SCHEDULED' }
+            data: { userId, title, description, scheduledDate: parsedDate, startTime, endTime, reminderTime, reminderMinutes: parsedReminderMinutes, status: 'SCHEDULED' }
         });
         res.json(block);
     } catch (error) {
-        console.error(error);
+        console.error('[Blocks] Create error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -73,8 +80,14 @@ router.post('/:id/log', authMiddleware, async (req, res) => {
 // Edit a block
 router.put('/:id', authMiddleware, async (req, res) => {
     const { title, description, scheduledDate, day, startTime, endTime, reminderTime, reminderMinutes } = req.body;
+    
+    // Explicitly parse reminderMinutes
+    const parsedReminderMinutes = reminderMinutes !== null && reminderMinutes !== undefined
+      ? parseInt(String(reminderMinutes), 10)
+      : null;
+
     try {
-        const dataToUpdate: any = { title, description, startTime, endTime, reminderTime, reminderMinutes };
+        const dataToUpdate: any = { title, description, startTime, endTime, reminderTime, reminderMinutes: parsedReminderMinutes };
         if (scheduledDate || day) {
             dataToUpdate.scheduledDate = new Date(scheduledDate || day);
         }
@@ -85,6 +98,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         });
         res.json(block);
     } catch (err) {
+        console.error('[Blocks] Update error:', err);
         res.status(500).send('Server Error');
     }
 });

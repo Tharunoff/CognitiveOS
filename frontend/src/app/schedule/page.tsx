@@ -86,17 +86,19 @@ export default function SchedulePage() {
         const finalDesc = description ? `[${type}] ${description}` : `[${type}]`;
         
         try {
+            const payload = {
+                title,
+                description: finalDesc,
+                scheduledDate: formDate,
+                startTime,
+                endTime,
+                reminderTime: reminderMinutes,
+                reminderMinutes: reminderMinutes ? Number(reminderMinutes) : null
+            };
+            console.log('[Schedule] Submitting block:', payload);
             await apiFetch('/blocks', {
                 method: 'POST',
-                body: JSON.stringify({
-                    title,
-                    description: finalDesc,
-                    scheduledDate: formDate,
-                    startTime,
-                    endTime,
-                    reminderTime: reminderMinutes,
-                    reminderMinutes
-                })
+                body: JSON.stringify(payload)
             });
             setIsAdding(false);
             resetForm();
@@ -120,17 +122,19 @@ export default function SchedulePage() {
         const finalDesc = description ? (description.startsWith('[') ? description : `[${type}] ${description}`) : `[${type}]`;
 
         try {
+            const payload = {
+                title,
+                description: finalDesc,
+                scheduledDate: formDate,
+                startTime,
+                endTime,
+                reminderTime: reminderMinutes,
+                reminderMinutes: reminderMinutes ? Number(reminderMinutes) : null
+            };
+            console.log('[Schedule] Submitting block update:', payload);
             await apiFetch(`/blocks/${editingBlock.id}`, {
                 method: 'PUT',
-                body: JSON.stringify({
-                    title,
-                    description: finalDesc,
-                    scheduledDate: formDate,
-                    startTime,
-                    endTime,
-                    reminderTime: reminderMinutes,
-                    reminderMinutes
-                })
+                body: JSON.stringify(payload)
             });
             setEditingBlock(null);
             resetForm();
