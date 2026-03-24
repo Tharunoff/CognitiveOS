@@ -43,8 +43,13 @@ export default function SchedulePage() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [type, setType] = useState('Work');
-    const [formDate, setFormDate] = useState(''); // YYYY-MM-DD
-    const [startTime, setStartTime] = useState('09:00');
+    const [formDate, setFormDate] = useState(''); // YYYY-MM-DD local
+    const [startTime, setStartTime] = useState(() => {
+        // Default to current hour + 1 so it never starts at midnight
+        const now = new Date();
+        now.setHours(now.getHours() + 1, 0, 0, 0);
+        return `${String(now.getHours()).padStart(2, '0')}:00`;
+    });
     const [duration, setDuration] = useState(60);
     const [reminderMinutes, setReminderMinutes] = useState<number | null>(15);
     const [saving, setSaving] = useState(false);
@@ -66,12 +71,37 @@ export default function SchedulePage() {
         }
     };
 
+    // Format a Date to a YYYY-MM-DD string using LOCAL date parts (not UTC)
+    const toLocalDateString = (date: Date) => {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    // Format a stored scheduledDate for display on block cards
+    const formatBlockDateTime = (scheduledDate: string) => {
+        const date = new Date(scheduledDate);
+        return date.toLocaleString([], {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        });
+    };
+
     const resetForm = (dateDefault?: Date) => {
         setTitle('');
         setDescription('');
         setType('Work');
-        setFormDate(dateDefault ? dateDefault.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
-        setStartTime('09:00');
+        const base = dateDefault || new Date();
+        setFormDate(toLocalDateString(base));
+        // Default start time: current hour + 1
+        const now = new Date();
+        now.setHours(now.getHours() + 1, 0, 0, 0);
+        setStartTime(`${String(now.getHours()).padStart(2, '0')}:00`);
         setDuration(60);
         setReminderMinutes(15);
     };
@@ -85,10 +115,15 @@ export default function SchedulePage() {
         const endTime = `${String(endHrs % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
         const finalDesc = description ? `[${type}] ${description}` : `[${type}]`;
 
-        // Combine date + time into a full ISO datetime
+        // Combine LOCAL date parts + parsed time into a full ISO datetime
         const combinedDateTime = (() => {
-            const [y, m, d] = formDate.split('-').map(Number);
+            const [yStr, mStr, dStr] = formDate.split('-');
+            const y = parseInt(yStr, 10);
+            const m = parseInt(mStr, 10); // 1-based
+            const d = parseInt(dStr, 10);
             const combined = new Date(y, m - 1, d, hrs, mins, 0, 0);
+            console.log('[Schedule] Combined datetime:', combined.toISOString(),
+                '| date parts:', y, m, d, '| time:', hrs, mins, '| startTime raw:', startTime);
             return combined.toISOString();
         })();
         
@@ -128,10 +163,15 @@ export default function SchedulePage() {
         const endTime = `${String(endHrs % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
         const finalDesc = description ? (description.startsWith('[') ? description : `[${type}] ${description}`) : `[${type}]`;
 
-        // Combine date + time into a full ISO datetime
+        // Combine LOCAL date parts + parsed time into a full ISO datetime
         const combinedDateTime = (() => {
-            const [y, m, d] = formDate.split('-').map(Number);
+            const [yStr, mStr, dStr] = formDate.split('-');
+            const y = parseInt(yStr, 10);
+            const m = parseInt(mStr, 10); // 1-based
+            const d = parseInt(dStr, 10);
             const combined = new Date(y, m - 1, d, hrs, mins, 0, 0);
+            console.log('[Schedule] Combined datetime (edit):', combined.toISOString(),
+                '| date parts:', y, m, d, '| time:', hrs, mins, '| startTime raw:', startTime);
             return combined.toISOString();
         })();
 
@@ -185,7 +225,7 @@ export default function SchedulePage() {
         
         setType(detectedType);
         setDescription(desc);
-        setFormDate(new Date(block.scheduledDate).toISOString().split('T')[0]);
+        setFormDate(toLocalDateString(new Date(block.scheduledDate)));
         setStartTime(block.startTime);
         setReminderMinutes(block.reminderMinutes !== undefined && block.reminderMinutes !== null ? block.reminderMinutes : block.reminderTime);
         
@@ -367,9 +407,14 @@ export default function SchedulePage() {
                                         {selectedBlocks.map(block => (
                                             <div key={block.id} className="group p-3 rounded-lg border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-colors relative">
                                                 <div className="flex justify-between items-start mb-1.5">
-                                                    <span className="text-xs font-medium text-white/40 flex items-center">
-                                                        <Clock className="w-3 h-3 mr-1" /> {block.startTime} — {block.endTime}
-                                                    </span>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-medium text-white/40 flex items-center">
+                                                            <Clock className="w-3 h-3 mr-1" /> {block.startTime} — {block.endTime}
+                                                        </span>
+                                                        <span className="text-[10px] text-emerald-400/70">
+                                                            {formatBlockDateTime(block.scheduledDate)}
+                                                        </span>
+                                                    </div>
                                                     {block.status === 'COMPLETED' ? (
                                                         <span className="bg-white/10 text-white/50 text-[10px] px-1.5 py-0.5 rounded-full uppercase tracking-wider">Done</span>
                                                     ) : (
