@@ -103,6 +103,28 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 });
 
+// TEMPORARY — one-time cleanup: delete blocks saved at midnight (the broken ones)
+// Call once via: DELETE /api/blocks/cleanup/midnight-blocks (with auth header)
+// Then remove this endpoint.
+router.delete('/cleanup/midnight-blocks', authMiddleware, async (req, res) => {
+    const userId = (req as any).user.id;
+    try {
+        const deleted = await prisma.timeBlock.deleteMany({
+            where: {
+                userId,
+                scheduledDate: {
+                    lte: new Date('2026-12-31T00:01:00.000Z'),
+                },
+                reminded: false,
+            },
+        });
+        res.json({ deleted: deleted.count });
+    } catch (err) {
+        console.error('[Blocks] Cleanup error:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // Delete a block
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {

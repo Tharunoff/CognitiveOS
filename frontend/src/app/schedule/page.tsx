@@ -84,12 +84,19 @@ export default function SchedulePage() {
         const endHrs = hrs + Math.floor(endMins / 60);
         const endTime = `${String(endHrs % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
         const finalDesc = description ? `[${type}] ${description}` : `[${type}]`;
+
+        // Combine date + time into a full ISO datetime
+        const combinedDateTime = (() => {
+            const [y, m, d] = formDate.split('-').map(Number);
+            const combined = new Date(y, m - 1, d, hrs, mins, 0, 0);
+            return combined.toISOString();
+        })();
         
         try {
             const payload = {
                 title,
                 description: finalDesc,
-                scheduledDate: formDate,
+                scheduledDate: combinedDateTime,
                 startTime,
                 endTime,
                 reminderTime: reminderMinutes,
@@ -121,11 +128,18 @@ export default function SchedulePage() {
         const endTime = `${String(endHrs % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
         const finalDesc = description ? (description.startsWith('[') ? description : `[${type}] ${description}`) : `[${type}]`;
 
+        // Combine date + time into a full ISO datetime
+        const combinedDateTime = (() => {
+            const [y, m, d] = formDate.split('-').map(Number);
+            const combined = new Date(y, m - 1, d, hrs, mins, 0, 0);
+            return combined.toISOString();
+        })();
+
         try {
             const payload = {
                 title,
                 description: finalDesc,
-                scheduledDate: formDate,
+                scheduledDate: combinedDateTime,
                 startTime,
                 endTime,
                 reminderTime: reminderMinutes,
