@@ -53,7 +53,11 @@ export function startAlarmScheduler() {
             try {
               await webpush.sendNotification(
                 { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-                payload
+                payload,
+                {
+                  urgency: 'high', // tells Android to deliver immediately
+                  TTL: 60,         // expires after 60s if not delivered
+                }
               );
             } catch (e: any) {
               console.error(`[Alarm] Push failed:`, e.message);

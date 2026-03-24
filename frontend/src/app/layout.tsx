@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { ReminderSystem } from '@/components/ReminderSystem';
 import { PWARegister } from '@/components/PWARegister';
 import KeepAlive from '@/components/KeepAlive';
+import AlarmSoundPlayer from '@/components/AlarmSoundPlayer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -51,6 +52,7 @@ export default function RootLayout({
           </main>
           <PWARegister />
           <KeepAlive />
+          <AlarmSoundPlayer />
         </AuthProvider>
       </body>
     </html>

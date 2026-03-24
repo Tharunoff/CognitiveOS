@@ -1,102 +1,136 @@
-const CACHE_NAME = 'cognitiveos-v1';
+const SW_VERSION = '2.0.0'; // increment every time sw.js is updated
+const CACHE_NAME = 'cognitiveos-v2';
 const OFFLINE_URLS = ['/', '/dump', '/ideas', '/learn', '/schedule'];
 
-self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(OFFLINE_URLS);
-        })
-    );
-    self.skipWaiting();
+console.log('[SW] Service worker version:', SW_VERSION);
+
+// ── Install: cache offline pages & activate immediately ──────────────────────
+self.addEventListener('install', function(event) {
+  console.log('[SW] Installing version:', SW_VERSION);
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(OFFLINE_URLS);
+    }).then(() => self.skipWaiting()) // Force immediate activation
+  );
 });
 
-self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((cacheNames) =>
-            Promise.all(
-                cacheNames
-                    .filter((name) => name !== CACHE_NAME)
-                    .map((name) => caches.delete(name))
-            )
-        )
-    );
-    self.clients.claim();
+// ── Activate: purge old caches & take control of all pages immediately ────────
+self.addEventListener('activate', function(event) {
+  console.log('[SW] Activating version:', SW_VERSION);
+  event.waitUntil(
+    caches.keys().then((cacheNames) =>
+      Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      )
+    ).then(() => self.clients.claim()) // Take control of all open pages
+  );
 });
 
-self.addEventListener('fetch', (event) => {
-    // Network first, fallback to cache
-    if (event.request.method !== 'GET') return;
+// ── Fetch: network-first, fallback to cache ───────────────────────────────────
+self.addEventListener('fetch', function(event) {
+  if (event.request.method !== 'GET') return;
 
-    event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                // Clone and cache successful responses
-                if (response.status === 200) {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, clone);
-                    });
-                }
-                return response;
-            })
-            .catch(() => {
-                return caches.match(event.request);
-            })
-    );
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
+  );
 });
 
+// ── Push: show notification, then tell open clients to play alarm sound ───────
 self.addEventListener('push', function(event) {
-  if (!event.data) return;
+  console.log('[SW] Push received');
 
-  let data;
-  try {
-    data = event.data.json();
-  } catch(e) {
-    data = { title: '⏰ Reminder', body: event.data.text(), sound: '/alarm.mp3' };
+  let payload = {
+    title: '⏰ CognitiveOS Reminder',
+    body: 'Your block is starting soon',
+    blockId: null,
+    sound: '/alarm.mp3'
+  };
+
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+      console.log('[SW] Push payload:', JSON.stringify(payload));
+    } catch (e) {
+      payload.body = event.data.text();
+      console.log('[SW] Push text fallback:', payload.body);
+    }
   }
 
-  // Play alarm sound
-  const audioPromise = self.clients.matchAll({ type: 'window' }).then(clients => {
-    clients.forEach(client => {
-      client.postMessage({ type: 'PLAY_ALARM', sound: data.sound });
-    });
-  });
-
-  const notificationPromise = self.registration.showNotification(data.title, {
-    body: data.body,
-    icon: '/icon-192x192.png',
-    badge: '/icon-192x192.png',
-    vibrate: [500, 200, 500, 200, 500],
+  const options = {
+    body: payload.body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [500, 200, 500, 200, 500, 200, 500],
     requireInteraction: true,
     silent: false,
-    tag: 'cognitive-alarm-' + (data.blockId || Date.now()),
+    tag: 'cogos-alarm',
     renotify: true,
-    actions: [
-      { action: 'open', title: '▶ Start Block' },
-      { action: 'dismiss', title: '✕ Dismiss' }
-    ],
     data: {
-      blockId: data.blockId,
+      blockId: payload.blockId,
+      dateOfArrival: Date.now(),
       url: '/schedule'
-    }
-  });
+    },
+    actions: [
+      { action: 'start', title: '▶ Start Now' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ]
+  };
 
-  event.waitUntil(Promise.all([audioPromise, notificationPromise]));
+  event.waitUntil(
+    self.registration.showNotification(payload.title, options)
+      .then(() => {
+        console.log('[SW] Notification shown successfully');
+        // Tell all open app windows to play the alarm sound
+        return self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      })
+      .then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'PLAY_ALARM_SOUND',
+            sound: payload.sound || '/alarm.mp3'
+          });
+        });
+      })
+      .catch((err) => {
+        console.error('[SW] Failed to show notification:', err);
+      })
+  );
 });
 
+// ── Notification click: focus app or open /schedule ───────────────────────────
 self.addEventListener('notificationclick', function(event) {
+  console.log('[SW] Notification clicked, action:', event.action);
   event.notification.close();
 
   if (event.action === 'dismiss') return;
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
-      for (const client of clients) {
-        if (client.url.includes('/schedule') && 'focus' in client) {
-          return client.focus();
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if ('focus' in client) {
+            client.focus();
+            client.navigate('/schedule');
+            return;
+          }
         }
-      }
-      return self.clients.openWindow('/schedule');
-    })
+        if (self.clients.openWindow) {
+          return self.clients.openWindow('/schedule');
+        }
+      })
   );
 });
