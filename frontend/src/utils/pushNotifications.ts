@@ -8,7 +8,7 @@ export async function registerPushNotifications(apiUrl: string, token: string) {
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
     console.warn('[Push] Permission denied');
-    return;
+    throw new Error('Notification permission denied by user');
   }
 
   try {
@@ -22,7 +22,7 @@ export async function registerPushNotifications(apiUrl: string, token: string) {
     });
 
     // Send subscription to backend
-    await fetch(`${apiUrl}/push/subscribe`, {
+    const res = await fetch(`${apiUrl}/push/subscribe`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,9 +37,15 @@ export async function registerPushNotifications(apiUrl: string, token: string) {
       }),
     });
 
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Backend refused push subscription');
+    }
+
     console.log('[Push] Subscribed successfully');
   } catch (e) {
     console.error('[Push] Subscription failed:', e);
+    throw e; // actually bubble the error so UI knows it failed
   }
 }
 
