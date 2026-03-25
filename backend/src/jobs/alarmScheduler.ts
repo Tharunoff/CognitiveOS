@@ -34,9 +34,10 @@ export function startAlarmScheduler() {
 
         const diffMs = reminderTime.getTime() - now.getTime();
 
-        // Fire if within a 90 second window (handles cron timing drift)
-        if (diffMs >= -90000 && diffMs <= 90000) {
-          console.log(`[Alarm] FIRING for block "${block.title}"`);
+        // Fire if we are at the reminder time, or ANY time past it (handles Render server sleeping/waking up late).
+        // diffMs <= 90000 allows firing up to 90 seconds early to account for cron tick drift.
+        if (diffMs <= 90000) {
+          console.log(`[Alarm] FIRING for block "${block.title}" (diffMs: ${diffMs})`);
 
           const subscriptions = await prisma.pushSubscription.findMany({
             where: { userId: block.userId },
@@ -56,7 +57,7 @@ export function startAlarmScheduler() {
                 payload,
                 {
                   urgency: 'high', // tells Android to deliver immediately
-                  TTL: 60,         // expires after 60s if not delivered
+                  TTL: 21600,      // 6 hours (Android Doze might hold push for hours. 60s is too short and drops it).
                 }
               );
               console.log(`[Alarm] Push DELIVERED to endpoint: ${sub.endpoint.slice(0, 50)}...`);
