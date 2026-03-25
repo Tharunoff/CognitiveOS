@@ -31,9 +31,10 @@ export default function PushReRegister() {
       await registerPushNotifications(apiUrl, token);
       setStatus('done');
       setTimeout(() => setStatus('idle'), 3000);
-    } catch (e) {
+    } catch (e: any) {
       console.error('[Push] Re-register failed:', e);
       setStatus('error');
+      alert(`Push Failed: ${e.message || String(e)}`);
       setTimeout(() => setStatus('idle'), 3000);
     }
   };
