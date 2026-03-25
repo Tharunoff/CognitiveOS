@@ -24,6 +24,10 @@ export function startAlarmScheduler() {
         },
       });
 
+      if (blocks.length > 0) {
+        console.log(`[Alarm] Found ${blocks.length} pending unreminded block(s)`);
+      }
+
       for (const block of blocks) {
         if (!block.reminderMinutes || !block.scheduledDate) continue;
 
@@ -34,10 +38,12 @@ export function startAlarmScheduler() {
 
         const diffMs = reminderTime.getTime() - now.getTime();
 
+        console.log(`[Alarm] Inspecting "${block.title}" | scheduledFor: ${block.scheduledDate.toISOString()} | diffMs: ${diffMs}`);
+
         // Fire if we are at the reminder time, or ANY time past it (handles Render server sleeping/waking up late).
         // diffMs <= 90000 allows firing up to 90 seconds early to account for cron tick drift.
         if (diffMs <= 90000) {
-          console.log(`[Alarm] FIRING for block "${block.title}" (diffMs: ${diffMs})`);
+          console.log(`[Alarm] >>> FIRING for block "${block.title}" (diffMs: ${diffMs} <= 90000)`);
 
           const subscriptions = await prisma.pushSubscription.findMany({
             where: { userId: block.userId },
