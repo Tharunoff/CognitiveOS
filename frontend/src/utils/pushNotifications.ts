@@ -12,13 +12,16 @@ export async function registerPushNotifications(apiUrl: string, token: string) {
   }
 
   try {
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) {
+      throw new Error('NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set — add it to Vercel Environment Variables');
+    }
+
     const registration = await navigator.serviceWorker.ready;
 
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-      ) as any,
+      applicationServerKey: urlBase64ToUint8Array(vapidKey) as any,
     });
 
     // Send subscription to backend
