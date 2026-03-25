@@ -1,5 +1,5 @@
-const SW_VERSION = '2.0.0'; // increment every time sw.js is updated
-const CACHE_NAME = 'cognitiveos-v2';
+const SW_VERSION = '3.0.0'; // increment every time sw.js is updated
+const CACHE_NAME = 'cognitiveos-v3';
 const OFFLINE_URLS = ['/', '/dump', '/ideas', '/learn', '/schedule'];
 
 console.log('[SW] Service worker version:', SW_VERSION);
@@ -52,6 +52,10 @@ self.addEventListener('fetch', function(event) {
 // ── Push: show notification, then tell open clients to play alarm sound ───────
 self.addEventListener('push', function(event) {
   console.log('[SW] Push received');
+  // Android requires at least one prior user interaction with notifications
+  // Log to confirm push event is actually reaching the SW
+  console.log('[SW] Push event fired, attempting to show notification');
+  console.log('[SW] Registration scope:', self.registration.scope);
 
   let payload = {
     title: '⏰ CognitiveOS Reminder',

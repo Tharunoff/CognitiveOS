@@ -59,9 +59,11 @@ export function startAlarmScheduler() {
                   TTL: 60,         // expires after 60s if not delivered
                 }
               );
+              console.log(`[Alarm] Push DELIVERED to endpoint: ${sub.endpoint.slice(0, 50)}...`);
             } catch (e: any) {
-              console.error(`[Alarm] Push failed:`, e.message);
+              console.error(`[Alarm] Push failed for endpoint ${sub.endpoint.slice(0, 50)}:`, e.message);
               if (e.statusCode === 410) {
+                console.log(`[Alarm] Removing stale subscription (410 Gone)`);
                 await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } });
               }
             }

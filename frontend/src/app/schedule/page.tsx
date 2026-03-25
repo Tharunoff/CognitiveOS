@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Plus, Clock, CheckCircle2, Trash2, Pencil, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import PushReRegister from '@/components/PushReRegister';
 import {
   Select,
   SelectContent,
@@ -329,6 +330,7 @@ export default function SchedulePage() {
                     </div>
                     
                     <div className="flex gap-2">
+                        <PushReRegister />
                         <Button onClick={jumpToToday} variant="outline" className="border-white/10 bg-white/[0.02] text-white/60 hover:text-white hidden md:flex">Today</Button>
                         <Button onClick={() => { 
                             setIsAdding(true); 

@@ -37,7 +37,20 @@ export default function LoginPage() {
 
             login(response.user, response.token);
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-            registerPushNotifications(apiUrl, response.token);
+            // Get token — try all common storage locations
+            const token =
+              response.token ||
+              localStorage.getItem('token') ||
+              localStorage.getItem('authToken') ||
+              localStorage.getItem('accessToken') ||
+              sessionStorage.getItem('token') ||
+              '';
+            console.log('[Push] Token length:', token.length, 'API URL:', apiUrl);
+            if (token) {
+              registerPushNotifications(apiUrl, token);
+            } else {
+              console.warn('[Push] No auth token found — push not registered');
+            }
         } catch (err: any) {
             setError(err.message || 'Authentication failed');
         } finally {
