@@ -72,10 +72,11 @@ export default function LoginPage() {
                 transition={{ ...gentleSpring, delay: 0.1 }}
             >
                 <motion.div
+                    className="flex items-center justify-center w-12 h-12 rounded-lg bg-black border-2 border-white shadow-xl"
                     animate={{ rotate: [0, 0, 360] }}
                     transition={{ duration: 2, repeat: Infinity, repeatDelay: 8, ease: "easeInOut" }}
                 >
-                    <BrainCircuit className="h-8 w-8 text-white" />
+                    <BrainCircuit className="h-7 w-7 text-white" />
                 </motion.div>
                 <h1 className="text-3xl font-bold text-white tracking-tight">CognitiveOS</h1>
             </motion.div>

@@ -5,12 +5,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated } = useAppStore();
+    const { isAuthenticated, checkSession } = useAppStore();
     const router = useRouter();
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        checkSession();
         setMounted(true);
         if (!isAuthenticated && pathname !== '/login') {
             router.push('/login');
@@ -18,7 +19,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isAuthenticated && pathname === '/login') {
             router.push('/');
         }
-    }, [isAuthenticated, pathname, router]);
+    }, [isAuthenticated, pathname, router, checkSession]);
 
     if (!mounted) return null;
 

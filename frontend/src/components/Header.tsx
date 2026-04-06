@@ -36,7 +36,11 @@ export function Header() {
                 <div className="container mx-auto flex h-14 items-center px-4 md:px-6">
                     <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} transition={spring}>
                         <Link href="/" className="flex items-center gap-2 font-bold text-lg text-white">
-                            <motion.div animate={{ rotate: [0, 0, 360] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 8, ease: "easeInOut" }}>
+                            <motion.div 
+                                className="flex items-center justify-center w-8 h-8 rounded-md bg-black border-2 border-white overflow-hidden shadow-lg"
+                                animate={{ rotate: [0, 0, 360] }} 
+                                transition={{ duration: 2, repeat: Infinity, repeatDelay: 8, ease: "easeInOut" }}
+                            >
                                 <BrainCircuit className="h-5 w-5 text-white" />
                             </motion.div>
                             <span>CognitiveOS</span>
